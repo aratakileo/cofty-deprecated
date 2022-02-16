@@ -15,7 +15,7 @@ print('Hello World!')
 ```
 - Current Cofty
 ```cpp
-printf('Hello World')
+printf('Hello World!')
 ```
 - Rust
 ```Rust
