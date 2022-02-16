@@ -9,9 +9,13 @@ A smart compiler makes it possible to write less code with the same efficiency a
 `gcc` and [Python](https://www.python.org/downloads/) first.
 
 # Syntax example
-- Cofty
+- Future Cofty
 ```Python
 print('Hello World!')
+```
+- Current Cofty
+```cpp
+printf('Hello World')
 ```
 - Rust
 ```Rust
