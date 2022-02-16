@@ -5,6 +5,10 @@ A smart compiler makes it possible to write less code with the same efficiency a
 
 [Rust]: https://www.rust-lang.org
 
+```diff
+- WARNING: The current version is under development!
+```
+
 # Installing
 `gcc` and [Python](https://www.python.org/downloads/) first.
 
@@ -22,6 +26,7 @@ printf('Hello World!')
 fn main() {
   println("Hello World!");
 }
+
 ```
 - C++
 ```cpp
