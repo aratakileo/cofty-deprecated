@@ -6,7 +6,8 @@ A smart compiler makes it possible to write less code with the same efficiency a
 [Rust]: https://www.rust-lang.org
 
 ```diff
-- WARNING: The current version is under development!
+! WARNING: The current version is under development!
+! WARNING: Will be working only by Python >= 3.10
 ```
 
 # Installing
