@@ -1,7 +1,7 @@
 # The Cofty Programming Language
 This is the main source code repository for Cofty. It contains the compiler, standard library, and documentation.
 
-A smart compiler makes it possible to write less code with the same efficiency and safy of its execution as if you were writing it in [Rust].
+A smart compiler makes it possible to write less code with the same efficiency and safy of its execution as if you were writing it by [Rust].
 
 [Rust]: https://www.rust-lang.org
 
