@@ -23,7 +23,7 @@ printf('Hello World!')
 - Rust
 ```Rust
 fn main() {
-  println("Hello World!");
+  println!("Hello World!");
 }
 
 ```
