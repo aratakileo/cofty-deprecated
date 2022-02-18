@@ -1,81 +1,9 @@
 from cft_lexer import Token, TokenTypes, DummyToken, TokenType
-from errors_handler import ErrorsHandler
+from cft_namehandler import get_value_returned_type
+from compile.cft_compile import get_num_type
+from cft_errors_handler import ErrorsHandler
+from parse import cft_ops as ops
 from typing import List, Tuple
-
-
-# def compile_num(num: str):
-#     value = num.split('@')
-#
-#     if len(value[0]) > 1 and value[0][1] in ('b', 'B', 'x', 'X', 'o', 'O'):
-#         if value[0][1] in ('b', 'B'):
-#             number_sys = 2
-#         elif value[0][1] in ('o', 'O'):
-#             number_sys = 8
-#         else:
-#             number_sys = 16
-#
-#         value[0] = str(int(value[0][2:], number_sys))
-#
-#     return '@'.join(value)
-#
-#
-# def get_num_max(type: str):
-#     bits = int(type[1:])
-#
-#     if type[0] == 'i':
-#         bits -= 1
-#
-#     return int('1' * bits, 2)
-#
-#
-# def get_num_min(type: str):
-#     return 0 if type[0] == 'u' else -get_num_max(type)
-
-
-def _compile_num(num: str):
-    if len(num) > 1 and num[1] in 'bBxXoO':
-        if num[1] in 'bB':
-            number_sys = 2
-        elif num[1] in 'oO':
-            number_sys = 8
-        else:
-            number_sys = 16
-
-        return str(int(num[2:], number_sys))
-
-    return num
-
-
-MAX_NUM_SIZE = {
-    'i8': 0x7f,
-    'i16': 0x7fff,
-    'i32': 0x7fffff,
-    'i64': 0x7fffffff,
-    'i128': 0x7fffffffff,
-    'u8': 0xff,
-    'u16': 0xffff,
-    'u32': 0xffffff,
-    'u64': 0xffffffff,
-    'u128': 0xffffffffff,
-    'f32': 3.40282347e+38,
-    'f64': 1.7976931348623157e+308,
-}
-
-
-def _get_num_type(num: str):
-    if '@' in num:
-        return num.split('@')[1]
-
-    cnum = float(_compile_num(num))
-
-    if '.' in num or 'e' in num or 'E' in num:
-        return 'f32' if cnum <= MAX_NUM_SIZE['f32'] else 'f64'
-
-    for t in ('i8', 'i16', 'i32', 'i64', 'i128'):
-        if cnum <= MAX_NUM_SIZE[t]:
-            return t
-
-    return 'u128'
 
 
 def _is_type_expression(token: Token) -> bool:
@@ -83,26 +11,6 @@ def _is_type_expression(token: Token) -> bool:
         return True
 
     return False
-
-
-# left operators: <op> <expr>
-LOPS = ['+', '-', '*', '~', 'not']
-
-# <expr> <op> <expr>
-MIDDLE_OPS = [
-    *LOPS[:3],
-    '**', '|', '&', '<<', '>>', '%', '==', '<=', '>=', '>', '<', 'or', 'and', 'in', 'not in', 'is', 'is not'
-]
-
-# all user's operators
-OPS = list(set(LOPS) | set(MIDDLE_OPS))
-
-# operators that are always return type `bool`
-BOOL_OPS = ('not', 'or', 'and', 'in', 'not in', 'is', 'is not', '==', '<=', '>=', '<', '>')
-
-
-def _is_op(token: Token):
-    return token.type in (TokenTypes.OP, TokenTypes.NAME) and token.value in OPS
 
 
 # that names can not be used like a variable's, a function's name etc.
@@ -113,7 +21,7 @@ def _is_kw(token: Token, kws=()):
     if len(kws) != 0:
         return _is_kw(token) and token.value in kws
 
-    return token.type == TokenTypes.NAME and token.value in KEYWORDS or token.value in OPS
+    return token.type == TokenTypes.NAME and token.value in KEYWORDS or token.value in ops.OPS
 
 
 def _is_value_expression(
@@ -155,45 +63,14 @@ def _is_value_expression(
 
             if tokens[0].type in (TokenTypes.PARENTHESIS, TokenTypes.SQUARE_BRACKETS, TokenTypes.CURLY_BRACES):
                 return not tokens[0].value or _is_value_expression(tokens[0].value)
-        elif _is_op(tokens[0]) and not _is_op(tokens[1]) and _is_value_expression(tokens, 1):
-            if tokens[0].value not in LOPS: return False
+        elif ops.is_op(tokens[0]) and not ops.is_op(tokens[1]) and _is_value_expression(tokens, 1):
+            if tokens[0].value not in ops.LOPS: return False
             return True
-        elif len(tokens) >= 3 and not _is_op(tokens[0]) and _is_op(tokens[1]) \
+        elif len(tokens) >= 3 and not ops.is_op(tokens[0]) and ops.is_op(tokens[1]) \
                 and _is_value_expression(tokens[0]) and _is_value_expression(tokens, 2):
             return True
 
     return False
-
-
-MIDDLE_OPS_PRIORITY = {
-    'is': 0,
-    'is not': 0,
-    'and': 1,
-    'or': 1,
-    '==': 2,
-    '!=': 2,
-    '>=': 2,
-    '<=': 2,
-    '<': 2,
-    '>': 2,
-    'in': 3,
-    'not in': 3,
-    '|': 4,
-    '&': 4,
-    '>>': 5,
-    '<<': 5,
-    '%': 5,
-    '-': 6,
-    '+': 6,
-    '//': 7,
-    '/': 7,
-    '*': 7,
-    '**': 8
-}
-
-
-def _get_returned_type(obj: dict):
-    return obj['returned-type'] if obj['returned-type'] != '$self' else obj['type']
 
 
 def _generate_expression_syntax_object(
@@ -245,7 +122,7 @@ def _generate_expression_syntax_object(
             res.update({
                 'type': 'number',
                 'value': token.value,
-                'returned-type': _get_num_type(token.value)
+                'returned-type': get_num_type(token.value)
             })
         elif token.type == TokenTypes.NAME:
             res['value'] = token.value
@@ -286,118 +163,19 @@ def _generate_expression_syntax_object(
                     if res['type'] != 'tuple':
                         res['value'] = [res['value']]
     else:
-        invalid_lvalue = {
-            'type': 'op'
-        }
-        last_lvalue = invalid_lvalue
+        res.update(ops.generate_op_expression(tokens, errors_handler, path, _generate_expression_syntax_object))
 
-        i = 0
-        while _is_op(tokens[i]):
-            last_lvalue.update({
-                'op': tokens[i].value,
-                'value': {'type': 'op'}
-            })
-            last_lvalue = last_lvalue['value']
-
-            i += 1
-
-        if 'value' not in last_lvalue:
-            last_lvalue.update(_generate_expression_syntax_object(tokens[i], errors_handler, path))
-
-        tokens = tokens[i:]
-
-        del last_lvalue['$tokens-len']
-
-        if len(tokens) == 1:
-            res.update(invalid_lvalue)
-        else:
-            invalid_rvalue = _generate_expression_syntax_object(tokens, errors_handler, path, 2)
-
-            del invalid_rvalue['$tokens-len']
-
-            new_value = {
-                'type': 'op',
-                'op': tokens[1].value,
-                'lvalue': invalid_lvalue,
-                'rvalue': invalid_rvalue
-            }
-
-            if invalid_rvalue['type'] == 'op' and 'value' not in invalid_rvalue \
-                    and MIDDLE_OPS_PRIORITY[invalid_rvalue['op']] < MIDDLE_OPS_PRIORITY[tokens[1].value]:
-                # source expr:
-                # 1 + 2 * 3
-
-                # converting syntax tree, from:
-                #   +
-                #  / \
-                # 1   *
-                #    / \
-                #   2   3
-
-                # to:
-                #     *
-                #    / \
-                #   +   3
-                #  / \
-                # 1   2
-
-                new_value.update({
-                    'op': invalid_rvalue['op'],
-                    'lvalue': {
-                        'type': 'op',
-                        'op': tokens[1].value,
-                        'lvalue': invalid_lvalue,
-                        'rvalue': invalid_rvalue['lvalue']
-                    },
-                    'rvalue': invalid_rvalue['rvalue']
-                })
-
-                _lvalue = new_value['lvalue']
-                if _lvalue['rvalue']['type'] == 'op' and 'value' not in _lvalue['rvalue'] \
-                        and MIDDLE_OPS_PRIORITY[_lvalue['op']] > MIDDLE_OPS_PRIORITY[_lvalue['rvalue']['op']]:
-                    # source expr:
-                    # 1 ** 2 + 3 * 4
-
-                    # converting syntax tree, from:
-                    #   **
-                    #  /  \
-                    # 1    +
-                    #     / \
-                    #    2   *
-                    #       / \
-                    #      3   4
-
-                    # to:
-                    #       +
-                    #     /   \
-                    #   **     *
-                    #  /  \   / \
-                    # 1    2 3   4
-
-                    _lvalue.update({
-                        'op': _lvalue['rvalue']['op'],
-                        'lvalue': _lvalue.copy() | {'rvalue': _lvalue['rvalue']['lvalue']},
-                        'rvalue': _lvalue['rvalue']['rvalue']
-                    })
-
-            res.update(new_value)
-
-        if res['op'] in BOOL_OPS:
-            res['returned-type'] = 'bool'
-        else:
-            res['returned-type'] = '$undefined'  # that type mean unpredictable behavior
-
-    if _get_returned_type(res) == '$undefined':
+    if get_value_returned_type(res) == '$undefined':
         errors_handler.final_push_segment(
             path,
             'unpredictable behavior (it is impossible to calculate the return type)',
             tokens[0],
             type=ErrorsHandler.WARNING
         )
-    elif expected_type is not ... and _get_returned_type(res) != expected_type:
+    elif expected_type is not ... and get_value_returned_type(res) != expected_type:
         errors_handler.final_push_segment(
             path,
-            f'TypeError: expected type `{expected_type}`, got `{_get_returned_type(res)}`',
+            f'TypeError: expected type `{expected_type}`, got `{get_value_returned_type(res)}`',
             tokens[0],
             fill=True
         )
@@ -678,50 +456,26 @@ def generate_code_body(tokens: List[Token], errors_handler: ErrorsHandler, path:
     return main_body
 
 
-def __compile_op_expr(syntaxtree: dict) -> str:
-    # !THIS FUNCTION IS NOT FOR RELEASE, NEEDED ONLY FOR DEBUG!
-
-    if syntaxtree['type'] == 'main':
-        return __compile_op_expr(syntaxtree['value'][0])
-
-    if syntaxtree['type'] == 'op':
-        if 'value' in syntaxtree:
-            return syntaxtree['op'] + ' ' + __compile_op_expr(syntaxtree['value'])
-
-        return f'{{{__compile_op_expr(syntaxtree["lvalue"])} {syntaxtree["op"]} {__compile_op_expr(syntaxtree["rvalue"])}}}'
-
-    if syntaxtree['type'] == 'number':
-        return syntaxtree['value']
-
-    if syntaxtree['type'] == 'bool':
-        return 'true' if syntaxtree['value'] == 'True' else 'false'
-
-    if syntaxtree['type'] == 'char':
-        return "'" + syntaxtree['value'] + "'"
-
-    return f'"{syntaxtree["value"]}"'
-
-
 if __name__ == '__main__':
     from cft_lexer import generate_tokens, compose_tokens
 
-    with open('test.cft', 'r', encoding='utf-8') as f:
+    with open('../test.cft', 'r', encoding='utf-8') as f:
         file = f.read()
 
     errors_handler = ErrorsHandler()
-    tokens = generate_tokens(file, 'test.cft', errors_handler)
+    tokens = generate_tokens(file, '../test.cft', errors_handler)
     print('First stage:', tokens)
 
     if errors_handler.has_errors() or errors_handler.has_warnings():
         errors_handler.print()
     else:
-        tokens = compose_tokens(file, 'test.cft', tokens, errors_handler)
+        tokens = compose_tokens(file, '../test.cft', tokens, errors_handler)
         print('Second stage:', tokens)
 
         if errors_handler.has_errors() or errors_handler.has_warnings():
             errors_handler.print()
         else:
-            syntaxtree = generate_code_body(tokens, errors_handler, 'test.cft')
+            syntaxtree = generate_code_body(tokens, errors_handler, '../test.cft')
             print('Third stage:', syntaxtree)
 
             if errors_handler.has_errors() or errors_handler.has_warnings():

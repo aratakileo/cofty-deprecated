@@ -1,5 +1,5 @@
 from re import compile, finditer, DOTALL
-from errors_handler import ErrorsHandler
+from cft_errors_handler import ErrorsHandler
 from typing import Tuple, List
 from copy import deepcopy
 from enum import Enum

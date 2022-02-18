@@ -36,9 +36,7 @@ def compile_c(file: str, res_file: str = ..., flags=0):
     return res
 
 
-def interpret_syntaxtree(syntaxtree: dict):
-    pass
-
-
-if __name__ == '__main__':
-    print(compile_c("C:/Users/teaco/Desktop/Projects/Codes/C/Functions defining/main.c"))
+__all__ = (
+    'compile_c',
+    'FLAG_COMPILE_C_WARNINGS'
+)
