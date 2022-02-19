@@ -24,8 +24,8 @@ class NameHandler:
     def has_localname(self, name: str):
         return name in self._current_namespace
 
-    def has_globalname(self, name: str, only_global=False):
-        return name in self._accessible_names and not (only_global and self.has_localname(name))
+    def has_globalname(self, name: str, exclude_local=False):
+        return name in self._accessible_names and not (exclude_local and self.has_localname(name))
 
     def force_set_name(self, name: str, **attrs):
         attrs['*parent'] = self._current_namespace
