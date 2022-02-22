@@ -2,6 +2,7 @@ from cft_lexer import Token, TokenTypes, DummyToken, TokenType
 from cft_namehandler import get_value_returned_type
 from compile.cft_compile import get_num_type
 from cft_errors_handler import ErrorsHandler
+from cft_namehandler import NameHandler
 from parse import cft_ops as ops
 from typing import List, Tuple
 
@@ -229,7 +230,13 @@ def _is_setvalue_expression(
     return False
 
 
-def _generate_setvalue_syntax_object(tokens: List[Token], errors_handler: ErrorsHandler, path: str, i: int):
+def _generate_setvalue_syntax_object(
+        tokens: List[Token],
+        errors_handler: ErrorsHandler,
+        path: str,
+        i: int,
+        namehandler: NameHandler
+):
     res = {
         'type': 'set-value',
         'value-name': tokens[i].value,
@@ -270,6 +277,12 @@ def _generate_setvalue_syntax_object(tokens: List[Token], errors_handler: Errors
             res['tokens'] = tokens[i:i + 4] + _new_value['tokens']
             del _new_value['$tokens-len'], _new_value['tokens']
             res['new-value'] = _new_value
+
+    if res['value-type'] is None and res['new-value'] is not None:
+        res['value-type'] = get_value_returned_type(res['new-value'])
+
+    if not namehandler.set_name(tokens[i].value, res['value-type'], res['new-value'], mut=True):
+        errors_handler.final_push_segment(path, '<Set name value error>', tokens[i])
 
     return res
 
@@ -341,12 +354,21 @@ def _is_else(tokens: List[Token] | Token, i: int = 0, stop_tokens: Tuple[DummyTo
     return False
 
 
-def generate_code_body(tokens: List[Token], errors_handler: ErrorsHandler, path: str, body_type: str = 'main'):
+def generate_code_body(
+        tokens: List[Token],
+        errors_handler: ErrorsHandler,
+        path: str,
+        namehandler: NameHandler,
+        body_type: str = '$main-body'
+):
     main_body = {
         'type': body_type,
         'value': []
     }
     current_body = main_body
+
+    if body_type != '$main-body':
+        namehandler.init_new_localspace()
 
     i = 0
     while i < len(tokens):
@@ -356,14 +378,17 @@ def generate_code_body(tokens: List[Token], errors_handler: ErrorsHandler, path:
             # set variable value
             # <name> "=" <expr>
 
-            current_body['value'].append(_generate_setvalue_syntax_object(tokens, errors_handler, path, i))
+            current_body['value'].append(_generate_setvalue_syntax_object(tokens, errors_handler, path, i, namehandler))
+
             i += current_body['value'][-1]['$tokens-len']
             del current_body['value'][-1]['$tokens-len']
         elif _is_kw(token, ('let', 'var')) and _is_setvalue_expression(tokens, errors_handler, path, i + 1):
             # init variable
             # "let" | "var" <name>(":" <typename>)? "=" <expr>
 
-            current_body['value'].append(_generate_setvalue_syntax_object(tokens, errors_handler, path, i + 1))
+            current_body['value'].append(
+                _generate_setvalue_syntax_object(tokens, errors_handler, path, i + 1, namehandler)
+            )
 
             if not errors_handler.has_errors():
                 current_body['value'][-1].update({
@@ -390,7 +415,8 @@ def generate_code_body(tokens: List[Token], errors_handler: ErrorsHandler, path:
                             tokens[i + 1 + _condition['$tokens-len']].value,
                             errors_handler,
                             path,
-                            'code-body'
+                            namehandler,
+                            body_type='$code-body'
                         )
             _value = {
                         'condition': _condition,
@@ -424,7 +450,8 @@ def generate_code_body(tokens: List[Token], errors_handler: ErrorsHandler, path:
                             tokens[i + 1].value,
                             errors_handler,
                             path,
-                            'code-body'
+                            namehandler,
+                            body_type='$code-body'
                         )
 
             i += 2
@@ -453,6 +480,9 @@ def generate_code_body(tokens: List[Token], errors_handler: ErrorsHandler, path:
         if errors_handler.has_errors():
             return {}
 
+    if body_type != '$main-body':
+        namehandler.deinit_current_localspace()
+
     return main_body
 
 
@@ -475,8 +505,10 @@ if __name__ == '__main__':
         if errors_handler.has_errors() or errors_handler.has_warnings():
             errors_handler.print()
         else:
-            syntaxtree = generate_code_body(tokens, errors_handler, '../test.cft')
-            print('Third stage:', syntaxtree)
+            namehandler = NameHandler()
+
+            syntaxtree = generate_code_body(tokens, errors_handler, '../test.cft', namehandler)
+            print('Third stage:', syntaxtree, '\n   - NameHandler:', namehandler.to_json())
 
             if errors_handler.has_errors() or errors_handler.has_warnings():
                 errors_handler.print()

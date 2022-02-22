@@ -1,3 +1,6 @@
+from py_utils import isnotfinished
+
+
 def compile_num(num: str):
     if len(num) > 1 and num[1] in 'bBxXoO':
         if num[1] in 'bB':
@@ -46,6 +49,8 @@ def get_num_type(num: str):
 
 def __compile_op_expr(syntaxtree: dict) -> str:
     # !THIS FUNCTION IS NOT FOR RELEASE, NEEDED ONLY FOR DEBUG!
+
+    isnotfinished()
 
     if syntaxtree['type'] == 'main':
         return __compile_op_expr(syntaxtree['value'][0])
