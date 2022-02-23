@@ -1,4 +1,5 @@
-from py_utils import isnotfinished
+from os.path import abspath
+from re import findall
 
 
 def compile_num(num: str):
@@ -47,33 +48,28 @@ def get_num_type(num: str):
     return 'u128'
 
 
-def __compile_op_expr(syntaxtree: dict) -> str:
-    # !THIS FUNCTION IS NOT FOR RELEASE, NEEDED ONLY FOR DEBUG!
+CVARS = {
+    'standard_lib_path': abspath('../Lib').replace('\\', '/'),
+    'main_body': '',
+    'global_body': ''
+}
 
-    isnotfinished()
 
-    if syntaxtree['type'] == 'main':
-        return __compile_op_expr(syntaxtree['value'][0])
+def compile_to_c(syntaxtree: dict):
+    with open('main.c', 'r', encoding='utf-8') as f:
+        main_c = f.read()
 
-    if syntaxtree['type'] == 'op':
-        if 'value' in syntaxtree:
-            return syntaxtree['op'] + ' ' + __compile_op_expr(syntaxtree['value'])
+    for var in findall(r'\${(.+)}', main_c):
+        main_c = main_c.replace(f'${{{var}}}', CVARS[var.strip()])
 
-        return f'{{{__compile_op_expr(syntaxtree["lvalue"])} {syntaxtree["op"]} {__compile_op_expr(syntaxtree["rvalue"])}}}'
-
-    if syntaxtree['type'] == 'number':
-        return syntaxtree['value']
-
-    if syntaxtree['type'] == 'bool':
-        return 'true' if syntaxtree['value'] == 'True' else 'false'
-
-    if syntaxtree['type'] == 'char':
-        return "'" + syntaxtree['value'] + "'"
-
-    return f'"{syntaxtree["value"]}"'
+    return main_c
 
 
 __all__ = (
     'compile_num',
     'get_num_type'
 )
+
+
+if __name__ == '__main__':
+    print(compile_to_c({}))
