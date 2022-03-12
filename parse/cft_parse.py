@@ -138,6 +138,10 @@ def _generate_expression_syntax_object(
                 res['returned-type'] = '$undefined' \
                     if not DEBUG \
                     else namehandler.get_current_name_body(token.value)['type']
+
+                # TODO: remove this if-statement when, returned-type system will be finished
+                # TODO: replace to:
+                # TODO: namehandler.get_current_name_body(token.value)['type']
         elif token.type == TokenTypes.TUPLE:
             # <expression>, <expression>
 
@@ -373,9 +377,9 @@ def generate_code_body(
     current_body = main_body
 
     if body_type != '$main-body':
-        print('before:', namehandler._accessible_names)
+        print('before:', namehandler._accessible_names)  # temp line
         namehandler.init_new_localspace()
-        print('after:', namehandler._accessible_names)
+        print('after:', namehandler._accessible_names)  # temp line
 
     i = 0
     while i < len(tokens):
@@ -390,6 +394,7 @@ def generate_code_body(
             i += current_body['value'][-1]['$tokens-len']
             del current_body['value'][-1]['$tokens-len']
         elif _is_kw(token, ('let', 'var')) and _is_setvalue_expression(tokens, errors_handler, path, i + 1):
+            # TODO: What different between let and var? Remove let and var if it not make sense...
             # init variable
             # "let" | "var" <name>(":" <typename>)? "=" <expr>
 
