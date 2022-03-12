@@ -7,6 +7,9 @@ from parse import cft_ops as ops
 from typing import List, Tuple
 
 
+DEBUG = False
+
+
 def _is_type_expression(token: Token) -> bool:
     if token.type == TokenTypes.NAME:
         return True
@@ -132,7 +135,9 @@ def _generate_expression_syntax_object(
                 res['type'] = 'bool'
             else:
                 res['type'] = 'name'
-                res['returned-type'] = '$undefined'  # that type mean unpredictable behavior
+                res['returned-type'] = '$undefined' \
+                    if not DEBUG \
+                    else namehandler.get_current_name_body(token.value)['type']
         elif token.type == TokenTypes.TUPLE:
             # <expression>, <expression>
 
@@ -368,7 +373,9 @@ def generate_code_body(
     current_body = main_body
 
     if body_type != '$main-body':
+        print('before:', namehandler._accessible_names)
         namehandler.init_new_localspace()
+        print('after:', namehandler._accessible_names)
 
     i = 0
     while i < len(tokens):
@@ -481,7 +488,7 @@ def generate_code_body(
             return {}
 
     if body_type != '$main-body':
-        namehandler.deinit_current_localspace()
+        namehandler.leave_current_localspace()
 
     return main_body
 
