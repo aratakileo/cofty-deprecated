@@ -17,6 +17,7 @@
 #define _cft_SET_OUTPUT_ENCODING(_cft_encoding) _setmode(_fileno(stdout), _cft_encoding)
 #define _cft_INIT_OUTPUT _cft_SET_OUTPUT_ENCODING(_cft_ENCODING_DEFAULT)
 
-#define _cft_printf(_cft_value, ...) wprintf(L##_cft_value, __VA_ARGS__)
+#define _cft_string(_cft_value) L##_cft_value
+#define _cft_printf(_cft_value, ...) wprintf(_cft_string(_cft_value), __VA_ARGS__)
 
 #endif
