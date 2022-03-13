@@ -377,9 +377,7 @@ def generate_code_body(
     current_body = main_body
 
     if body_type != '$main-body':
-        print('before:', namehandler._accessible_names)  # temp line
         namehandler.init_new_localspace()
-        print('after:', namehandler._accessible_names)  # temp line
 
     i = 0
     while i < len(tokens):

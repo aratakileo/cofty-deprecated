@@ -50,18 +50,17 @@ class NameHandler:
         return self._accessible_names[name]
 
     def force_set_name(self, name: str, **attrs):
-        if not self.is_overloaded(name):
-            if isinstance(attrs['value'], list):
-                for val in attrs['value']:
-                    val.update({
-                        'name': name,
-                        '*parent': self._current_obj
-                    })
-            else:
-                attrs.update({
+        if isinstance(attrs['value'], list):
+            for val in attrs['value']:
+                val.update({
                     'name': name,
                     '*parent': self._current_obj
                 })
+        else:
+            attrs.update({
+                'name': name,
+                '*parent': self._current_obj
+            })
 
         if name not in self._abs_current_obj['value']:
             self._abs_current_obj['value'][name] = {}
@@ -105,8 +104,9 @@ class NameHandler:
             if self.is_overloaded(name, True):
                 self._abs_current_obj['value'][name].append(new_obj | piece)
             else:
-                temp = self._accessible_names[name]
-                del self._accessible_names[name], self._abs_current_obj['value'][name]
+                temp = self._abs_current_obj['value'][name]
+
+                del self._abs_current_obj['value'][name]
 
                 self.force_set_name(name, type='$handler', value=[temp, new_obj])
 
@@ -144,7 +144,6 @@ class NameHandler:
                     self._accessible_names[name]['value'].remove(self._abs_current_obj['value'][name])
             else:
                 del self._accessible_names[name]
-
         self._current_obj = self._abs_current_obj['*parent']
 
     # DO NOT USE THIS METHODS
