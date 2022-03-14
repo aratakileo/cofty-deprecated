@@ -101,7 +101,7 @@ def _generate_expression_syntax_object(
                 res['type'] = 'name'
                 res['returned-type'] = '$undefined' \
                     if True \
-                    else namehandler.get_current_name_body(token.value)['type']
+                    else namehandler.get_current_body(token.value)['type']
 
                 # TODO: remove this if-statement when, returned-type system will be finished
                 # TODO: replace to:

@@ -4,13 +4,14 @@ from parsemod.cft_is_codebody import *
 from lexermod.cft_token import *
 from typing import List, Tuple
 
-from py_utils import isnotfinished  # temp import
-
 
 def _is_fn_init(tokens: List[Token] | Token, i: int = 0, stop_tokens: Tuple[DummyToken | TokenType] = ...):
-    """ "fn" <fn-name> "("<kwargs>")" ("->" <returned-type>)? <code-body>"""
+    """ "fn" <fn-name> "("<args>")" ("->" <returned-type>)? <code-body>"""
 
     tokens = extract_tokens(tokens, i, stop_tokens)
+
+    if tokens is None:
+        return False
 
     if len(tokens) != 4:
         return False
@@ -23,6 +24,3 @@ def _is_fn_init(tokens: List[Token] | Token, i: int = 0, stop_tokens: Tuple[Dumm
         return True
 
     return False
-
-
-def _generate_fn_init(): isnotfinished()

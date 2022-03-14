@@ -2,6 +2,7 @@ from lexermod.cft_token import Token, TokenTypes, DummyToken, TokenType
 from cft_extract_tokens import extract_tokens
 from cft_errors_handler import ErrorsHandler
 from cft_namehandler import NameHandler
+from parsemod.cft_fn import _is_fn_init
 from cft_is_codebody import *
 from typing import List, Tuple
 from cft_setvalue import *
@@ -54,9 +55,6 @@ def generate_code_body(
     }
     current_body = main_body
 
-    if body_type != '$main-body':
-        namehandler.init_new_localspace()
-
     i = 0
     while i < len(tokens):
         token = tokens[i]
@@ -100,12 +98,15 @@ def generate_code_body(
                 right_i=1,
                 expected_type='bool'
             )
+
+            namehandler.root_init_new_localspace()
+
             _body = generate_code_body(
                             tokens[i + 1 + _condition['$tokens-len']].value,
                             errors_handler,
                             path,
                             namehandler,
-                            body_type='$code-body'
+                            body_type='$sub-body'
                         )
             _value = {
                         'condition': _condition,
@@ -135,15 +136,29 @@ def generate_code_body(
                 errors_handler.final_push_segment(path, 'SyntaxError: invalid syntax', token, fill=True)
                 return {}
 
+            namehandler.root_init_new_localspace()
+
             current_body['value'][-1]['else-body'] = generate_code_body(
                             tokens[i + 1].value,
                             errors_handler,
                             path,
                             namehandler,
-                            body_type='$code-body'
+                            body_type='$sub-body'
                         )
 
             i += 2
+        elif _is_fn_init(tokens, i):
+            if not namehandler.init_fn(tokens[i + 1].value):
+                errors_handler.final_push_segment(path, f'<Init function `{tokens[i + 1].value}` error>', tokens[i])
+
+            current_body['value'].append({
+                'type': 'fn-init',
+                'fn-name': tokens[i + 1].value,
+                'args': {},
+                'body': generate_code_body(tokens[i + 3].value, errors_handler, path, namehandler, body_type='$fn-body'),
+                'returned-type': 'None'
+            })
+            i += 4
         elif _is_value_expression(tokens, i):
             current_body['value'].append(
                 _generate_expression_syntax_object(tokens, errors_handler, path, namehandler, i)
@@ -172,7 +187,7 @@ def generate_code_body(
             return {}
 
     if body_type != '$main-body':
-        namehandler.leave_current_localspace()
+        namehandler.root_leave_current_localspace()
 
     return main_body
 
