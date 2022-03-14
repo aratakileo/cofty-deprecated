@@ -1,5 +1,6 @@
+from lexermod.cft_token import Token, TokenTypes
 from cft_errors_handler import ErrorsHandler
-from cft_lexer import Token, TokenTypes
+from cft_namehandler import NameHandler
 from typing import List
 
 
@@ -54,7 +55,8 @@ def generate_op_expression(
         tokens: List[Token] | Token,
         errors_handler: ErrorsHandler,
         path: str,
-        fn_generate_expression_syntax_object
+        namehandler: NameHandler,
+        fn_generate_expression_syntax_object  # It's needs to avoid `CircularImport` error
 ):
     res = {}
     invalid_lvalue = {
@@ -73,7 +75,7 @@ def generate_op_expression(
         i += 1
 
     if 'value' not in last_lvalue:
-        last_lvalue.update(fn_generate_expression_syntax_object(tokens[i], errors_handler, path))
+        last_lvalue.update(fn_generate_expression_syntax_object(tokens[i], errors_handler, path, namehandler))
 
     tokens = tokens[i:]
 
@@ -82,7 +84,7 @@ def generate_op_expression(
     if len(tokens) == 1:
         res.update(invalid_lvalue)
     else:
-        invalid_rvalue = fn_generate_expression_syntax_object(tokens, errors_handler, path, 2)
+        invalid_rvalue = fn_generate_expression_syntax_object(tokens, errors_handler, path, namehandler, 2)
 
         del invalid_rvalue['$tokens-len']
 
@@ -159,3 +161,14 @@ def generate_op_expression(
         res['returned-type'] = '$undefined'  # that type mean unpredictable behavior
 
     return res
+
+
+__all__ = (
+    'LOPS',
+    'MIDDLE_OPS',
+    'MIDDLE_OPS_PRIORITY',
+    'OPS',
+    'BOOL_OPS',
+    'is_op',
+    'generate_op_expression'
+)
