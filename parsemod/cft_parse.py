@@ -2,24 +2,11 @@ from lexermod.cft_token import Token, TokenTypes, DummyToken, TokenType
 from cft_extract_tokens import extract_tokens
 from cft_errors_handler import ErrorsHandler
 from cft_namehandler import NameHandler
+from cft_is_codebody import *
 from typing import List, Tuple
 from cft_setvalue import *
 from cft_kw import _is_kw
 from cft_expr import *
-
-
-def _is_code_body(tokens: List[Token] | Token, i: int = 0, stop_tokens: Tuple[DummyToken | TokenType] = ...):
-    """<code-body>"""
-
-    tokens = extract_tokens(tokens, i, stop_tokens)
-
-    if tokens is None:
-        return False
-
-    if len(tokens) == 1 and tokens[0].type == TokenTypes.CURLY_BRACES:
-        return True
-
-    return False
 
 
 def _is_if_or_elif(tokens: List[Token] | Token, i: int = 0, stop_tokens: Tuple[DummyToken | TokenType] = ...):

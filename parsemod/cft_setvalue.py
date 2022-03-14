@@ -1,6 +1,7 @@
 from cft_namehandler import NameHandler, get_value_returned_type
 from lexermod.cft_token import Token, TokenTypes, DummyToken
 from cft_errors_handler import ErrorsHandler
+from parsemod.cft_kw import _is_name
 from cft_expr import *
 from typing import List
 
@@ -15,12 +16,12 @@ def _is_setvalue_expression(
     """<name>(":" <type>)? ("=" <expr>)?"""
 
     if i >= len(tokens) - 2:
-        if type_annotation and i < len(tokens) and tokens[i].type == TokenTypes.NAME:
+        if type_annotation and i < len(tokens) and _is_name(tokens[i]):
             errors_handler.final_push_segment(path, 'TypeError: type annotations needed', tokens[i], fill=True)
 
         return False
 
-    if tokens[i].type == TokenTypes.NAME:
+    if _is_name(tokens[i]):
         if tokens[i + 1] == DummyToken(TokenTypes.OP, ':') and _is_type_expression(tokens[i + 2]):
             if i < len(tokens) - 4 and type_annotation:
                 if tokens[i + 3] == DummyToken(TokenTypes.OP, '=') and _is_value_expression(tokens, i + 4):
