@@ -58,6 +58,7 @@ At first, you need
 
 > __*The compilation of the code is not ready yet, and the language itself is not finished yet and does not have support for the minimum allowable syntax. Using the project's capabilities at this stage is at your own risk!*__
 
+<!--
 # Different languages syntax comparison
 ### Program starting
 - Cofty
@@ -80,9 +81,6 @@ print('Hello World!')
 ```diff
 ! That method is not exist now
 ```
-<!--```python
-printf('Hello World!')
-```-->
 - Rust
 ```Rust
 fn main() {
@@ -98,3 +96,4 @@ int main() {
     return 0;
 }
 ```
+-->
