@@ -3,15 +3,38 @@ This is the main source code repository for Cofty. It contains the compiler, sta
 
 <!--A smart compiler makes it possible to write less code with the same efficiency and safy of its execution as if you were writing it by [Rust](https://www.rust-lang.org).-->
 
-```diff
-! WARNING: The current version is under development!
-! WARNING: Will be working only by Python >= 3.10
+[`Python >= 3.10`]: https://www.python.org/downloads/
+
+### Current project version
+- Has
+  - tokenizer
+  - generator a syntax tree by primitive Cofty syntax
+  - smart name handler for name managment
+  - errors handler
+- Also
+  - works only with [`Python >= 3.10`]
+
+### Installing
+At first, you need
+- `gcc`
+- [`Python >= 3.10`]
+
+> __*The compilation of the code is not ready yet, and the language itself is not finished yet and does not have support for the minimum allowable syntax. Using the project's capabilities at this stage is at your own risk!*__
+
+# Different languages syntax comparison
+### Program starting
+- Cofty
+```sql
+-- your code here
+```
+- Cofty (alternative)
+```applescript
+fn main() {
+    -- your code here
+}
 ```
 
-# Installing
-`gcc` and [Python](https://www.python.org/downloads/) first.
-
-# Syntax example
+### Output `Hello World!`
 - Future Cofty
 ```python
 print('Hello World!')
@@ -26,16 +49,15 @@ printf('Hello World!')
 - Rust
 ```Rust
 fn main() {
-  println!("Hello World!");
+    println!("Hello World!");
 }
-
 ```
 - C++
 ```cpp
 #include <iostream>
 
 int main() {
-  std::cout << "Hello World!" << std::endl;
-  return 0;
+    std::cout << "Hello World!" << std::endl;
+    return 0;
 }
 ```
