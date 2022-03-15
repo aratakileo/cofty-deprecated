@@ -13,6 +13,43 @@ This is the main source code repository for Cofty. It contains the compiler, sta
   - errors handler
 - Also
   - works only with [`Python >= 3.10`]
+- Syntax progress
+  - [x] singleline comments
+  - [ ] supports value expressions
+    - [x] operators
+      - [x] priority
+      - [x] left
+      - [x] middle
+    - [ ] number value
+      - [x] automatic decimal type specification
+      - [x] `i8`, `i16`, `i32`, `i64`
+      - [ ] `i128`
+      - [x] `u8`, `u16`, `u32`, `u64`
+      - [ ] `u128`
+      - [x] automatic float type specification
+      - [x] `f32`, `f64`
+    - [x] string value
+    - [x] char value
+    - [x] bool value
+    - [x] value from name
+    - [ ] None value
+  - [x] variables system
+    - [x] initialization
+      - [x] without value
+      - [x] automatic type specifications
+    - [x] setting values
+  - [ ] base constructions
+    - [x] `if`, `elif`, `else`
+    - [ ] `while`
+    - [ ] `for`
+  - [ ] functions initialization
+    - [x] without arguments
+    - [ ] with arguments
+    - [ ] supports returned type specifications
+  - [ ] calling names
+    - [ ] without arguments
+    - [ ] with arguments
+  - [ ] supports single line code body
 
 ### Installing
 At first, you need
