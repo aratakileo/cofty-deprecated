@@ -63,7 +63,7 @@ def generate_code_body(
             # set variable value
             # <name> "=" <expr>
 
-            current_body['value'].append(_generate_setvalue_syntax_object(tokens, errors_handler, path, i, namehandler))
+            current_body['value'].append(_generate_setvalue_syntax_object(tokens, errors_handler, path, namehandler, i))
 
             i += current_body['value'][-1]['$tokens-len']
             del current_body['value'][-1]['$tokens-len']
@@ -73,7 +73,7 @@ def generate_code_body(
             # "let" | "var" <name>(":" <typename>)? "=" <expr>
 
             current_body['value'].append(
-                _generate_setvalue_syntax_object(tokens, errors_handler, path, i + 1, namehandler)
+                _generate_setvalue_syntax_object(tokens, errors_handler, path, namehandler, i + 1)
             )
 
             if not errors_handler.has_errors():
@@ -147,18 +147,44 @@ def generate_code_body(
                         )
 
             i += 2
-        elif _is_fn_init(tokens, i):
+        elif _is_fn_init(tokens, errors_handler, path, i):
             if not namehandler.init_fn(tokens[i + 1].value):
                 errors_handler.final_push_segment(path, f'<Init function `{tokens[i + 1].value}` error>', tokens[i])
+
+            args = []
+            args_tokens = tokens[i + 2].value
+
+            if args_tokens:
+                temp = args_tokens[0].value
+
+                if args_tokens[0].type != TokenTypes.TUPLE:
+                    temp = [args_tokens]
+
+                for arg_tokens in temp:
+                    args.append(_generate_setvalue_syntax_object(arg_tokens, errors_handler, path, namehandler))
+                    del args[-1]['$tokens-len']
+
+            namehandler.def_fn_args()
 
             current_body['value'].append({
                 'type': 'fn-init',
                 'fn-name': tokens[i + 1].value,
-                'args': {},
+                'args': args,
                 'body': generate_code_body(tokens[i + 3].value, errors_handler, path, namehandler, body_type='$fn-body'),
                 'returned-type': 'None'
             })
             i += 4
+        elif _is_kw(token, 'return'):
+            if body_type != '$fn-body':
+                errors_handler.final_push_segment(path, 'SyntaxError: \'return\' outside function', token, fill=True)
+                return {}
+
+            current_body['value'].append({
+                'type': 'return',
+                'value': None
+            })
+
+            i += 1
         elif _is_value_expression(tokens, i):
             current_body['value'].append(
                 _generate_expression_syntax_object(tokens, errors_handler, path, namehandler, i)

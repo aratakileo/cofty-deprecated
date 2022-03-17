@@ -10,7 +10,7 @@ def _is_setvalue_expression(
         tokens: List[Token],
         errors_handler: ErrorsHandler,
         path: str,
-        i: int,
+        i: int = 0,
         type_annotation: bool = True
 ) -> bool:
     """<name>(":" <type>)? ("=" <expr>)?"""
@@ -31,6 +31,10 @@ def _is_setvalue_expression(
                 return False
 
             if type_annotation:
+                if len(tokens) != 3:
+                    errors_handler.final_push_segment(path, 'SyntaxError: invalid syntax', tokens[i + 3], fill=True)
+                    return False
+
                 return True
 
             errors_handler.final_push_segment(
@@ -55,8 +59,8 @@ def _generate_setvalue_syntax_object(
         tokens: List[Token],
         errors_handler: ErrorsHandler,
         path: str,
-        i: int,
-        namehandler: NameHandler
+        namehandler: NameHandler,
+        i: int = 0
 ):
     res = {
         'type': 'set-value',

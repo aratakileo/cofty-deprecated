@@ -3,7 +3,7 @@ from cft_ops import OPS
 
 
 # that names can not be used like a variable's, a function's name etc.
-KEYWORDS = ['if', 'else', 'elif', 'let', 'var', 'True', 'False', 'fn']
+KEYWORDS = ['if', 'else', 'elif', 'let', 'var', 'True', 'False', 'fn', 'return']
 
 
 def _is_kw(

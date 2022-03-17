@@ -111,6 +111,12 @@ class NameHandler:
 
         return True
 
+    def def_fn_args(self):
+        self._abs_current_obj['args'] = {}
+
+        for name in self._abs_current_obj['value']:
+            self._abs_current_obj['args'][name] = self._abs_current_obj['value'][name]
+
     def root_overload_name(self, name: str, _type: str, value: dict, **attrs):
         new_obj = {'type': _type, 'value': value, **attrs}
         piece = {'name': name, '*parent': self._current_obj}
