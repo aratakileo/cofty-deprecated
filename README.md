@@ -44,7 +44,7 @@ This is the main source code repository for Cofty. It contains the compiler, sta
     - [ ] `for`
   - [ ] functions initialization
     - [x] without arguments
-    - [ ] with arguments
+    - [x] with arguments
     - [ ] supports returned type specifications
   - [ ] calling names
     - [ ] without arguments
