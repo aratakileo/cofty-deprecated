@@ -31,6 +31,15 @@ class NameHandler:
 
         return self.current_obj
 
+    @property
+    def base_current_obj(self):
+        current = self.abs_current_obj
+
+        while current['type'] == NAME_HANDLER_TYPES[1]:
+            current = current['*parent']
+
+        return current
+
     def has_localname(self, name: str):
         return name in self.abs_current_obj['value']
 

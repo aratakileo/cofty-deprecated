@@ -2,9 +2,9 @@ from cft_namehandler import NameHandler, get_value_returned_type
 from cft_extract_tokens import extract_tokens
 from cft_errors_handler import ErrorsHandler
 from compile.cft_compile import get_num_type
+from cft_kw import _is_name, _is_kw
 from lexermod.cft_token import *
 from typing import List, Tuple
-from cft_kw import _is_name
 import cft_ops as ops
 
 
@@ -28,7 +28,7 @@ def _is_value_expression(
 
     if len(tokens) == 1:
         if tokens[0].type in (TokenTypes.NUMBER, TokenTypes.STRING) \
-                or _is_name(tokens[0]) or _is_name(tokens[0], ('True', 'False')):
+                or _is_name(tokens[0]) or _is_kw(tokens[0], ('True', 'False')):
             return True
 
         if tokens[0].type == TokenTypes.TUPLE:

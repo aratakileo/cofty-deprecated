@@ -49,7 +49,8 @@ def generate_code_body(
         errors_handler: ErrorsHandler,
         path: str,
         namehandler: NameHandler,
-        body_type: str = '$main-body'
+        body_type: str = '$main-body',
+        base_body_type: str = '$main-body'
 ):
     main_body = {
         'type': body_type,
@@ -107,16 +108,18 @@ def generate_code_body(
             namehandler.root_init_new_localspace()
 
             _body = generate_code_body(
-                            tokens[i + 1 + _condition['$tokens-len']].value,
-                            errors_handler,
-                            path,
-                            namehandler,
-                            body_type='$sub-body'
-                        )
+                tokens[i + 1 + _condition['$tokens-len']].value,
+                errors_handler,
+                path,
+                namehandler,
+                body_type='$sub-body',
+                base_body_type=base_body_type
+            )
+
             _value = {
-                        'condition': _condition,
-                        'body': _body
-                    }
+                'condition': _condition,
+                'body': _body
+            }
 
             if tokens[i].value == 'elif':
                 if len(current_body['value']) == 0 or current_body['value'][-1]['type'] != 'if-statement':
@@ -144,12 +147,13 @@ def generate_code_body(
             namehandler.root_init_new_localspace()
 
             current_body['value'][-1]['else-body'] = generate_code_body(
-                            tokens[i + 1].value,
-                            errors_handler,
-                            path,
-                            namehandler,
-                            body_type='$sub-body'
-                        )
+                tokens[i + 1].value,
+                errors_handler,
+                path,
+                namehandler,
+                body_type='$sub-body',
+                base_body_type=base_body_type
+            )
 
             i += 2
         elif _is_fn_init(tokens, errors_handler, path, i):
@@ -183,14 +187,15 @@ def generate_code_body(
                     errors_handler,
                     path,
                     namehandler,
-                    body_type='$fn-body'
+                    body_type='$fn-body',
+                    base_body_type='$fn-body'
                 ),
                 'returned-type': returned_type
             })
 
             i += 6 if type_specification else 4
         elif _is_kw(token, 'return'):
-            if body_type != '$fn-body':
+            if base_body_type != '$fn-body':
                 errors_handler.final_push_segment(path, 'SyntaxError: \'return\' outside function', token, fill=True)
                 return {}
 
@@ -202,14 +207,14 @@ def generate_code_body(
                     path,
                     namehandler,
                     i + 1,
-                    expected_type=namehandler.abs_current_obj['returned-type']
+                    expected_type=namehandler.base_current_obj['returned-type']
                 )
 
-            if namehandler.abs_current_obj['returned-type'] != 'None' and 'type' in returned_value \
+            if namehandler.base_current_obj['returned-type'] != 'None' and 'type' in returned_value \
                     and returned_value['type'] == 'None':
                 errors_handler.final_push_segment(
                     path,
-                    f'TypeError: expected type `{namehandler.abs_current_obj["returned-type"]}`,'
+                    f'TypeError: expected type `{namehandler.base_current_obj["returned-type"]}`,'
                     f' got `{get_value_returned_type(returned_value)}`',
                     tokens[0],
                     fill=True
@@ -254,9 +259,17 @@ def generate_code_body(
         if errors_handler.has_errors():
             return {}
 
-    if '$return-is-used' in main_body and not main_body['$return-is-used'] and namehandler.abs_current_obj['returned-type'] != 'None':
-        errors_handler.final_push_segment(path, 'SyntaxError: has no `return` expression', tokens[-1], fill=True)
-        return {}
+    if '$return-is-used' in main_body:
+        if not main_body['$return-is-used'] and namehandler.abs_current_obj['returned-type'] != 'None':
+            errors_handler.final_push_segment(
+                path,
+                'SyntaxError: has no (final) `return` expression',
+                tokens[-1],
+                fill=True
+            )
+            return {}
+
+        del main_body['$return-is-used']
 
     if body_type != '$main-body':
         namehandler.root_leave_current_localspace()
