@@ -3,6 +3,7 @@ from parsemod.cft_extract_tokens import extract_tokens
 from parsemod.cft_kw import _is_kw, _is_name
 from cft_errors_handler import ErrorsHandler
 from parsemod.cft_is_codebody import *
+from parsemod.cft_ops import is_op
 from lexermod.cft_token import *
 from typing import List, Tuple
 
@@ -14,12 +15,25 @@ def _is_fn_init(
         i: int = 0,
         stop_tokens: Tuple[DummyToken | TokenType] = ...
 ):
-    """ "fn" <fn-name> "("<args>")" ("->" <returned-type>)? <code-body>"""
+    """ "fn" <fn-name> "("<arg>*")" (":" <returned-type>)? <code-body>"""
 
     tokens = extract_tokens(tokens, i, stop_tokens)
 
-    if tokens is None or len(tokens) != 4 or not _is_kw(tokens[0], 'fn') or not _is_name(tokens[1]) \
-            or tokens[2].type != TokenTypes.PARENTHESIS or not _is_code_body(tokens[3]):
+    if tokens is None or not _is_kw(tokens[0], 'fn'):
+        return False
+
+    type_annotation = len(tokens) != 4
+
+    if len(tokens) not in (4, 6) or not _is_name(tokens[1]) or tokens[2].type != TokenTypes.PARENTHESIS \
+            or not (type_annotation or _is_code_body(tokens[3])) or (
+            type_annotation and not (is_op(tokens[3], ':') and _is_name(tokens[4]) and _is_code_body(tokens[5]))
+    ):
+        errors_handler.final_push_segment(
+            path,
+            'SyntaxError: invalid syntax',
+            tokens[-1],
+            fill=True
+        )
         return False
 
     args_tokens = tokens[2].value

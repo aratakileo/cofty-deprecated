@@ -2,9 +2,9 @@ from cft_namehandler import NameHandler, get_value_returned_type
 from cft_extract_tokens import extract_tokens
 from cft_errors_handler import ErrorsHandler
 from compile.cft_compile import get_num_type
-from cft_kw import _is_kw, _is_name
 from lexermod.cft_token import *
 from typing import List, Tuple
+from cft_kw import _is_name
 import cft_ops as ops
 
 
@@ -26,27 +26,29 @@ def _is_value_expression(
     if tokens is None:
         return False
 
-    if len(tokens) >= 1:
-        if len(tokens) == 1:
-            if tokens[0].type in (TokenTypes.NUMBER, TokenTypes.STRING) \
-                    or _is_name(tokens[0]) or _is_name(tokens[0], ('True', 'False')):
-                return True
-
-            if tokens[0].type == TokenTypes.TUPLE:
-                for item in tokens[0].value:
-                    if not _is_value_expression(item):
-                        return False
-
-                return True
-
-            if tokens[0].type in (TokenTypes.PARENTHESIS, TokenTypes.SQUARE_BRACKETS, TokenTypes.CURLY_BRACES):
-                return not tokens[0].value or _is_value_expression(tokens[0].value)
-        elif ops.is_op(tokens[0]) and not ops.is_op(tokens[1]) and _is_value_expression(tokens, 1):
-            if tokens[0].value not in ops.LOPS: return False
+    if len(tokens) == 1:
+        if tokens[0].type in (TokenTypes.NUMBER, TokenTypes.STRING) \
+                or _is_name(tokens[0]) or _is_name(tokens[0], ('True', 'False')):
             return True
-        elif len(tokens) >= 3 and not ops.is_op(tokens[0]) and ops.is_op(tokens[1]) \
-                and _is_value_expression(tokens[0]) and _is_value_expression(tokens, 2):
+
+        if tokens[0].type == TokenTypes.TUPLE:
+            for item in tokens[0].value:
+                if not _is_value_expression(item):
+                    return False
+
             return True
+
+        if tokens[0].type in (TokenTypes.PARENTHESIS, TokenTypes.SQUARE_BRACKETS, TokenTypes.CURLY_BRACES):
+            return not tokens[0].value or _is_value_expression(tokens[0].value)
+    elif ops.is_op(tokens[0], source=ops.LOPS) and _is_value_expression(tokens, 1):
+        # LOPS check
+
+        return True
+    elif len(tokens) >= 3 and ops.is_op(tokens[1], source=ops.MIDDLE_OPS) \
+            and _is_value_expression(tokens[0]) and _is_value_expression(tokens, 2):
+        # MIDDLE_OPS check
+
+        return True
 
     return False
 
@@ -81,7 +83,8 @@ def _generate_expression_syntax_object(
             _index = token.value.index(token.value[-1])
 
             res.update({
-                'type': 'string' if 'c' not in token.value[:_index].lower() else 'char',  # `c` is prefix before quotes
+                # `c` is prefix before quotes that's means is char, not string
+                'type': 'string' if 'c' not in token.value[:_index].lower() else 'char',
                 'value': token.value[_index + 1:-1]
             })
         elif token.type == TokenTypes.NUMBER:
@@ -99,9 +102,7 @@ def _generate_expression_syntax_object(
                 res['type'] = 'bool'
             else:
                 res['type'] = 'name'
-                res['returned-type'] = '$undefined' \
-                    if True \
-                    else namehandler.get_current_body(token.value)['type']
+                res['returned-type'] = get_value_returned_type(namehandler.get_current_body(token.value)['value'])
 
                 # TODO: remove this if-statement when, returned-type system will be finished
                 # TODO: replace to:

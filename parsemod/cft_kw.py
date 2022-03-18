@@ -1,5 +1,5 @@
 from lexermod.cft_token import Token, TokenTypes
-from cft_ops import OPS
+from cft_ops import ALL_OPS
 
 
 # that names can not be used like a variable's, a function's name etc.
@@ -13,7 +13,7 @@ def _is_kw(
     if kws is not None:
         return _is_kw(token) and token.value in kws
 
-    return token.type == TokenTypes.NAME and token.value in KEYWORDS or token.value in OPS
+    return token.type == TokenTypes.NAME and token.value in KEYWORDS or token.value in ALL_OPS
 
 
 def _is_name(token: Token, names: str | tuple | list = None):

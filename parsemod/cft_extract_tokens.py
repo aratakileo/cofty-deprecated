@@ -23,7 +23,11 @@ def extract_tokens(
 
     for k in range(len(tokens)):
         if tokens[k] in stop_tokens:
-            return tokens[:k]
+            tokens = tokens[:k]
+            break
+
+    if len(tokens) == 0:
+        return None
 
     return tokens
 

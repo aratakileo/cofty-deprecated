@@ -1,7 +1,8 @@
 from cft_namehandler import NameHandler, get_value_returned_type
-from lexermod.cft_token import Token, TokenTypes, DummyToken
+from lexermod.cft_token import Token, TokenTypes
 from cft_errors_handler import ErrorsHandler
 from parsemod.cft_kw import _is_name
+from parsemod.cft_ops import is_op
 from cft_expr import *
 from typing import List
 
@@ -22,9 +23,9 @@ def _is_setvalue_expression(
         return False
 
     if _is_name(tokens[i]):
-        if tokens[i + 1] == DummyToken(TokenTypes.OP, ':') and _is_type_expression(tokens[i + 2]):
+        if is_op(tokens[i + 1], ':') and _is_type_expression(tokens[i + 2]):
             if i < len(tokens) - 4 and type_annotation:
-                if tokens[i + 3] == DummyToken(TokenTypes.OP, '=') and _is_value_expression(tokens, i + 4):
+                if is_op(tokens[i + 3], '=') and _is_value_expression(tokens, i + 4):
                     return True
 
                 errors_handler.final_push_segment(path, 'SyntaxError: invalid syntax', tokens[i + 3], fill=True)
@@ -42,14 +43,14 @@ def _is_setvalue_expression(
                 'SyntaxError: type annotation is not possible for an already existing variable',
                 tokens[i + 1]
             )
-        elif tokens[i + 1] == DummyToken(TokenTypes.OP, '='):
+        elif is_op(tokens[i + 1], '='):
             if _is_value_expression(tokens, i + 2):
                 return True
             elif tokens[i + 2].type not in (TokenTypes.NEWLINE, TokenTypes.ENDMARKER):
                 errors_handler.final_push_segment(path, 'SyntaxError: invalid syntax', tokens[i + 2], fill=True)
                 return False
 
-    if type_annotation or tokens[i + 1] == DummyToken(TokenTypes.OP, '='):
+    if type_annotation or is_op(tokens[i + 1], '='):
         errors_handler.final_push_segment(path, 'SyntaxError: invalid syntax', tokens[i + 1], fill=True)
 
     return False

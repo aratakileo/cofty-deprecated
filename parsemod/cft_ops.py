@@ -4,24 +4,43 @@ from cft_namehandler import NameHandler
 from typing import List
 
 
-# left operators: <op> <expr>
-LOPS = ['+', '-', '*', '~', 'not']
+LBOOL_OPS = ['not']
+"""Left operators that are always return type `bool`"""
 
-# <expr> <op> <expr>
-MIDDLE_OPS = [
-    *LOPS[:3],
-    '**', '|', '&', '<<', '>>', '%', '==', '<=', '>=', '>', '<', 'or', 'and', 'in', 'not in', 'is', 'is not'
-]
+LOPS = ['+', '-', '*', '~', *LBOOL_OPS]
+"""Left operators: <op> <expr>"""
 
-# all user's operators
-OPS = list(set(LOPS) | set(MIDDLE_OPS))
+MIDDLE_BOOL_OPS = ['or', 'and', 'in', 'not in', 'is', 'is not', '==', '<=', '>=', '<', '>']
+"""Middle operators that are always return type `bool`"""
 
-# operators that are always return type `bool`
-BOOL_OPS = ('not', 'or', 'and', 'in', 'not in', 'is', 'is not', '==', '<=', '>=', '<', '>')
+MIDDLE_OPS = [*LOPS[:3], '**', '|', '&', '<<', '>>', '%', *MIDDLE_BOOL_OPS]
+"""Middle ops: <expr> <op> <expr>"""
+
+ASSIGN_OPS = ['=']
+"""Assign operators: <name> <op> <expr>"""
+
+USER_OPS = list(set(LOPS) | set(MIDDLE_OPS)) + ASSIGN_OPS
+"""All user's operators (overloadable)"""
+
+NOTUSER_OPS = [':', '->']
+"""All not user's operators (non-overloadable)"""
+
+ALL_OPS = USER_OPS + NOTUSER_OPS
+"""Absolutely all operators"""
+
+BOOL_OPS = [*LBOOL_OPS, *MIDDLE_BOOL_OPS]
+"""Operators that are always return type `bool`"""
 
 
-def is_op(token: Token):
-    return token.type in (TokenTypes.OP, TokenTypes.NAME) and token.value in OPS
+def is_op(
+        token: Token,
+        ops: str | tuple | list = None,
+        source=ALL_OPS
+):
+    if ops is not None:
+        return is_op(token) and token.value in ops
+
+    return token.type in (TokenTypes.OP, TokenTypes.NAME) and token.value in source
 
 
 MIDDLE_OPS_PRIORITY = {
@@ -164,10 +183,14 @@ def generate_op_expression(
 
 
 __all__ = (
+    'LBOOL_OPS',
     'LOPS',
+    'MIDDLE_BOOL_OPS',
     'MIDDLE_OPS',
-    'MIDDLE_OPS_PRIORITY',
-    'OPS',
+    'ASSIGN_OPS',
+    'USER_OPS',
+    'NOTUSER_OPS',
+    'ALL_OPS',
     'BOOL_OPS',
     'is_op',
     'generate_op_expression'

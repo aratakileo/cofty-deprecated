@@ -1,8 +1,10 @@
 from lexermod.cft_token import Token, TokenTypes, DummyToken, TokenType
+from cft_namehandler import NameHandler, get_value_returned_type
 from cft_extract_tokens import extract_tokens
 from cft_errors_handler import ErrorsHandler
-from cft_namehandler import NameHandler
 from parsemod.cft_fn import _is_fn_init
+from cft_syntaxtree_values import pNone
+from parsemod.cft_ops import is_op
 from cft_is_codebody import *
 from typing import List, Tuple
 from cft_setvalue import *
@@ -54,6 +56,9 @@ def generate_code_body(
         'value': []
     }
     current_body = main_body
+
+    if body_type == '$fn-body':
+        main_body['$return-is-used'] = False  # temp value
 
     i = 0
     while i < len(tokens):
@@ -148,7 +153,10 @@ def generate_code_body(
 
             i += 2
         elif _is_fn_init(tokens, errors_handler, path, i):
-            if not namehandler.init_fn(tokens[i + 1].value):
+            type_specification = is_op(tokens[i + 3], ':')
+            returned_type = 'None' if not type_specification else tokens[i + 4].value
+
+            if not namehandler.init_fn(tokens[i + 1].value, returned_type):
                 errors_handler.final_push_segment(path, f'<Init function `{tokens[i + 1].value}` error>', tokens[i])
 
             args = []
@@ -170,19 +178,53 @@ def generate_code_body(
                 'type': 'fn-init',
                 'fn-name': tokens[i + 1].value,
                 'args': args,
-                'body': generate_code_body(tokens[i + 3].value, errors_handler, path, namehandler, body_type='$fn-body'),
-                'returned-type': 'None'
+                'body': generate_code_body(
+                    tokens[i + (5 if type_specification else 3)].value,
+                    errors_handler,
+                    path,
+                    namehandler,
+                    body_type='$fn-body'
+                ),
+                'returned-type': returned_type
             })
-            i += 4
+
+            i += 6 if type_specification else 4
         elif _is_kw(token, 'return'):
             if body_type != '$fn-body':
                 errors_handler.final_push_segment(path, 'SyntaxError: \'return\' outside function', token, fill=True)
                 return {}
 
+            returned_value = pNone \
+                if extract_tokens(tokens, i + 1) is None or not _is_value_expression(tokens, i + 1) \
+                else _generate_expression_syntax_object(
+                    tokens,
+                    errors_handler,
+                    path,
+                    namehandler,
+                    i + 1,
+                    expected_type=namehandler.abs_current_obj['returned-type']
+                )
+
+            if namehandler.abs_current_obj['returned-type'] != 'None' and 'type' in returned_value \
+                    and returned_value['type'] == 'None':
+                errors_handler.final_push_segment(
+                    path,
+                    f'TypeError: expected type `{namehandler.abs_current_obj["returned-type"]}`,'
+                    f' got `{get_value_returned_type(returned_value)}`',
+                    tokens[0],
+                    fill=True
+                )
+
             current_body['value'].append({
                 'type': 'return',
-                'value': None
+                'value': returned_value
             })
+
+            main_body['$return-is-used'] = True
+
+            if '$tokens-len' in returned_value:
+                i += returned_value['$tokens-len']
+                del returned_value['$tokens-len']
 
             i += 1
         elif _is_value_expression(tokens, i):
@@ -211,6 +253,10 @@ def generate_code_body(
 
         if errors_handler.has_errors():
             return {}
+
+    if '$return-is-used' in main_body and not main_body['$return-is-used'] and namehandler.abs_current_obj['returned-type'] != 'None':
+        errors_handler.final_push_segment(path, 'SyntaxError: has no `return` expression', tokens[-1], fill=True)
+        return {}
 
     if body_type != '$main-body':
         namehandler.root_leave_current_localspace()
