@@ -42,10 +42,10 @@ This is the main source code repository for Cofty. It contains the compiler, sta
     - [x] `if`, `elif`, `else`
     - [ ] `while`
     - [ ] `for`
-  - [ ] functions initialization
+  - [x] functions initialization
     - [x] without arguments
     - [x] with arguments
-    - [ ] supports returned type specifications
+    - [x] supports returned type specifications
   - [ ] calling names
     - [ ] without arguments
     - [ ] with arguments
