@@ -89,7 +89,6 @@ def generate_code_body(
                     'type': 'init-value',
                     'init-type': token.value
                 })
-                generated['tokens'].insert(0, token)
 
             i += generated['$tokens-len'] + 1
             del generated['$tokens-len']
@@ -235,7 +234,14 @@ def generate_code_body(
 
             i += 1
         elif _is_value_expression(tokens, i):
-            generated = _generate_expression_syntax_object(tokens, errors_handler, path, namehandler, i)
+            generated = _generate_expression_syntax_object(
+                tokens,
+                errors_handler,
+                path,
+                namehandler,
+                i,
+                effect_checker=True
+            )
 
             current_body['value'].append(
                 generated

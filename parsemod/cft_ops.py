@@ -97,12 +97,23 @@ def generate_op_expression(
 
     tokens = tokens[i:]
 
-    if 'value' not in last_lvalue:
-        last_lvalue.update(fn_generate_expression_syntax_object(tokens, errors_handler, path, namehandler))
+    if fn_is_name_call_expression(tokens):
+        off = 1
+
+        last_lvalue.update(fn_generate_name_call_expression(tokens, errors_handler, path, namehandler))
+    else:
+        off = 0
+
+        last_lvalue.update(
+            fn_generate_expression_syntax_object(tokens[0], errors_handler, path, namehandler, effect_checker=True)
+        )
 
     res['$has-effect'] = last_lvalue['$has-effect']  # temp value
 
-    del last_lvalue['$tokens-len'], last_lvalue['$has-effect']  # cleaning the temp values
+    if '$tokens-len' in last_lvalue:
+        del last_lvalue['$tokens-len']  # cleaning the temp value
+
+    del last_lvalue['$has-effect']  # cleaning the temp values
 
     if 1 <= len(tokens) <= 2:
         # LOPS generation
@@ -110,20 +121,27 @@ def generate_op_expression(
     else:
         # MIDDLE_OPS generation
 
-        invalid_rvalue = fn_generate_expression_syntax_object(tokens, errors_handler, path, namehandler, 2)
+        invalid_rvalue = fn_generate_expression_syntax_object(
+            tokens,
+            errors_handler,
+            path,
+            namehandler,
+            2 + off,
+            effect_checker=True
+        )
         res['$has-effect'] = res['$has-effect'] or invalid_rvalue['$has-effect']  # temp value
 
         del invalid_rvalue['$tokens-len'], invalid_rvalue['$has-effect']
 
         new_value = {
             'type': 'op',
-            'op': tokens[1].value,
+            'op': tokens[1 + off].value,
             'lvalue': invalid_lvalue,
             'rvalue': invalid_rvalue
         }
 
         if invalid_rvalue['type'] == 'op' and 'value' not in invalid_rvalue \
-                and MIDDLE_OPS_PRIORITY[invalid_rvalue['op']] < MIDDLE_OPS_PRIORITY[tokens[1].value]:
+                and MIDDLE_OPS_PRIORITY[invalid_rvalue['op']] < MIDDLE_OPS_PRIORITY[tokens[1 + off].value]:
             # source expr:
             # 1 + 2 * 3
 
@@ -145,7 +163,7 @@ def generate_op_expression(
                 'op': invalid_rvalue['op'],
                 'lvalue': {
                     'type': 'op',
-                    'op': tokens[1].value,
+                    'op': tokens[1 + off].value,
                     'lvalue': invalid_lvalue,
                     'rvalue': invalid_rvalue['lvalue']
                 },

@@ -101,10 +101,12 @@ class NameHandler:
         self._accessible_names[name] = self.abs_current_obj['value'][name]
 
     def set_name(self, name: str, _type: str, value: dict, **attrs):
-        if _type is not None and value is not None \
-                and (get_value_returned_type(value) != _type and get_value_returned_type(value) not in '$undefined') \
-                or \
-                (self.has_globalname(name) and self._accessible_names[name]['type'] != get_value_returned_type(value)):
+        if _type is not None and value is not None and (
+            get_value_returned_type(value) != _type and get_value_returned_type(value) not in '$undefined'
+            and not _type.startswith('$')
+        ) or (
+            self.has_globalname(name) and self._accessible_names[name]['type'] != get_value_returned_type(value)
+        ):
             return False
 
         self.root_force_set_name(name, type=_type, value=value, **attrs)

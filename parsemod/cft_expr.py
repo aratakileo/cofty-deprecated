@@ -56,11 +56,19 @@ def _is_value_expression(
         # LOPS check
 
         return True
-    elif len(tokens) >= 3 and ops.is_op(tokens[1], source=ops.MIDDLE_OPS) \
-            and _is_value_expression(tokens[0]) and _is_value_expression(tokens, 2):
+    elif len(tokens) >= 3:
         # MIDDLE_OPS check
 
-        return True
+        if _is_name_call_expression(tokens[:2], without_tail=True):
+            off = 1
+        elif _is_value_expression(tokens[0]):
+            off = 0
+        else:
+            return False
+
+        if ops.is_op(tokens[1 + off], source=ops.MIDDLE_OPS) and _is_value_expression(tokens, 2 + off):
+            return True
+
     elif _is_name_call_expression(tokens, without_tail=True) and not tokens[1].value:
         # calling name expression check
 
@@ -94,17 +102,14 @@ def _generate_expression_syntax_object(
         right_i: int = 0,
         stop_tokens: Tuple[DummyToken | TokenType] = ...,
         expected_type: dict | str = ...,
-        clearly_result=False  # to make subvalues without 'tokens' key
+        effect_checker=False
 ):
-    print('before:', i, tokens)
     tokens = extract_tokens(tokens, i, stop_tokens)
-    print('after:', tokens)
     tokens = tokens[:len(tokens) - right_i]
 
     res = {
         '$tokens-len': len(tokens),  # temp value
-        '$has-effect': False,  # temp value
-        'tokens': tokens
+        '$has-effect': False  # temp value
     }
 
     if len(tokens) == 1:
@@ -126,7 +131,7 @@ def _generate_expression_syntax_object(
             # includes any number format like integer or decimal
 
             res.update({
-                'type': 'number',
+                'type': '$number',
                 'value': token.value,
                 'returned-type': get_num_type(token.value)
             })
@@ -185,12 +190,6 @@ def _generate_expression_syntax_object(
             _generate_name_call_expression
         ))
 
-        if clearly_result:
-            if 'value' in res:
-                del res['value']['tokens']
-            else:
-                del res['rvalue']['tokens'], res['lvalue']['tokens']
-
     if get_value_returned_type(res) == '$undefined':
         errors_handler.final_push_segment(
             path,
@@ -206,6 +205,9 @@ def _generate_expression_syntax_object(
             fill=True
         )
         return {'$tokens-len': res['$tokens-len']}
+
+    if not effect_checker:
+        del res['$has-effect']
 
     return res
 

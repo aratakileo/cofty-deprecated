@@ -78,21 +78,18 @@ def _generate_setvalue_syntax_object(
             errors_handler,
             path,
             namehandler,
-            i + 2,
-            clearly_result=True
+            i + 2
         )
 
         if errors_handler.has_errors(): return {'$tokens-len': res['$tokens-len']}
 
         res['$tokens-len'] += _new_value['$tokens-len']
-        res['tokens'] = tokens[i: i + 2] + _new_value['tokens']
-        del _new_value['$tokens-len'], _new_value['tokens']
+        del _new_value['$tokens-len']
         res['new-value'] = _new_value
     else:
         # <value-name>: <value-type>
         res['value-type'] = tokens[i + 2].value
         res['$tokens-len'] += 1
-        res['tokens'] = tokens[i: i + 3]
 
         if i < len(tokens) - 4:
             # <value-name>: <value-type> = <new-value>
@@ -102,21 +99,24 @@ def _generate_setvalue_syntax_object(
                 path,
                 namehandler,
                 i + 4,
-                expected_type=res['value-type'],
-                clearly_result=True
+                expected_type=res['value-type']
             )
 
             if errors_handler.has_errors(): return {'$tokens-len': res['$tokens-len']}
 
             res['$tokens-len'] += _new_value['$tokens-len']
-            res['tokens'] = tokens[i:i + 4] + _new_value['tokens']
-            del _new_value['$tokens-len'], _new_value['tokens']
+            del _new_value['$tokens-len']
             res['new-value'] = _new_value
 
     if res['value-type'] is None and res['new-value'] is not None:
         res['value-type'] = get_value_returned_type(res['new-value'])
 
-    if not namehandler.set_name(tokens[i].value, res['value-type'], res['new-value'], mut=True):
+    _type = res['new-value']['type']
+
+    if _type != '$number':
+        _type = res['value-type']
+
+    if not namehandler.set_name(tokens[i].value, _type, res['new-value'], mut=True):
         errors_handler.final_push_segment(path, '<Set name value error>', tokens[i])
 
     return res
