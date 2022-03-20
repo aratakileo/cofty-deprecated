@@ -75,7 +75,9 @@ def generate_op_expression(
         errors_handler: ErrorsHandler,
         path: str,
         namehandler: NameHandler,
-        fn_generate_expression_syntax_object  # It's needs to avoid `CircularImport` error
+        fn_generate_expression_syntax_object,  # It's needs to avoid `CircularImport` error
+        fn_is_name_call_expression,
+        fn_generate_name_call_expression
 ):
     res = {}
     invalid_lvalue = {
@@ -93,19 +95,25 @@ def generate_op_expression(
 
         i += 1
 
-    if 'value' not in last_lvalue:
-        last_lvalue.update(fn_generate_expression_syntax_object(tokens[i], errors_handler, path, namehandler))
-
     tokens = tokens[i:]
 
-    del last_lvalue['$tokens-len']
+    if 'value' not in last_lvalue:
+        last_lvalue.update(fn_generate_expression_syntax_object(tokens, errors_handler, path, namehandler))
 
-    if len(tokens) == 1:
+    res['$has-effect'] = last_lvalue['$has-effect']  # temp value
+
+    del last_lvalue['$tokens-len'], last_lvalue['$has-effect']  # cleaning the temp values
+
+    if 1 <= len(tokens) <= 2:
+        # LOPS generation
         res.update(invalid_lvalue)
     else:
-        invalid_rvalue = fn_generate_expression_syntax_object(tokens, errors_handler, path, namehandler, 2)
+        # MIDDLE_OPS generation
 
-        del invalid_rvalue['$tokens-len']
+        invalid_rvalue = fn_generate_expression_syntax_object(tokens, errors_handler, path, namehandler, 2)
+        res['$has-effect'] = res['$has-effect'] or invalid_rvalue['$has-effect']  # temp value
+
+        del invalid_rvalue['$tokens-len'], invalid_rvalue['$has-effect']
 
         new_value = {
             'type': 'op',

@@ -15,6 +15,18 @@ def _is_type_expression(token: Token) -> bool:
     return False
 
 
+def _is_name_call_expression(tokens: List[Token] | Token, i: int = 0, without_tail=False):
+    tokens = tokens[i:]
+
+    if len(tokens) < 2 or (without_tail and len(tokens) != 2):
+        return False
+
+    if _is_name(tokens[0]) and tokens[1].type == TokenTypes.PARENTHESIS:
+        return True
+
+    return False
+
+
 def _is_value_expression(
         tokens: List[Token] | Token,
         i: int = 0,
@@ -49,12 +61,28 @@ def _is_value_expression(
         # MIDDLE_OPS check
 
         return True
-    elif len(tokens) == 2 and _is_name(tokens[0]) and tokens[1].type == TokenTypes.PARENTHESIS and not tokens[1].value:
+    elif _is_name_call_expression(tokens, without_tail=True) and not tokens[1].value:
         # calling name expression check
 
         return True
 
     return False
+
+
+def _generate_name_call_expression(
+        tokens: List[Token] | Token,
+        errors_handler: ErrorsHandler,
+        path: str,
+        namehandler: NameHandler,
+        i: int = 0
+):
+    return {
+        'type': 'call-name',
+        'called-name': tokens[0].value,
+        'args': [],
+        'returned-type': '$undefined',
+        '$has-effect': True  # temp value
+    }
 
 
 def _generate_expression_syntax_object(
@@ -68,7 +96,9 @@ def _generate_expression_syntax_object(
         expected_type: dict | str = ...,
         clearly_result=False  # to make subvalues without 'tokens' key
 ):
+    print('before:', i, tokens)
     tokens = extract_tokens(tokens, i, stop_tokens)
+    print('after:', tokens)
     tokens = tokens[:len(tokens) - right_i]
 
     res = {
@@ -142,18 +172,18 @@ def _generate_expression_syntax_object(
 
                     if res['type'] != 'tuple':
                         res['value'] = [res['value']]
-    elif _is_name(tokens[0]) and tokens[1].type == TokenTypes.PARENTHESIS:
-        res.update({
-            'type': 'call-name',
-            'called-name': tokens[0].value,
-            'args': [],
-            'returned-type': '$undefined',
-            '$has-effect': True  # temp value
-        })
+    elif _is_name_call_expression(tokens, without_tail=True):
+        res.update(_generate_name_call_expression(tokens, errors_handler, path, namehandler))
     else:
-        res.update(
-            ops.generate_op_expression(tokens, errors_handler, path, namehandler, _generate_expression_syntax_object)
-        )
+        res.update(ops.generate_op_expression(
+            tokens,
+            errors_handler,
+            path,
+            namehandler,
+            _generate_expression_syntax_object,
+            _is_name_call_expression,
+            _generate_name_call_expression
+        ))
 
         if clearly_result:
             if 'value' in res:
