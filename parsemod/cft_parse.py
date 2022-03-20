@@ -69,28 +69,30 @@ def generate_code_body(
             # set variable value
             # <name> "=" <expr>
 
-            current_body['value'].append(_generate_setvalue_syntax_object(tokens, errors_handler, path, namehandler, i))
+            generated = _generate_setvalue_syntax_object(tokens, errors_handler, path, namehandler, i)
 
-            i += current_body['value'][-1]['$tokens-len']
-            del current_body['value'][-1]['$tokens-len']
+            current_body['value'].append(generated)
+
+            i += generated['$tokens-len']
+            del generated['$tokens-len']
         elif _is_kw(token, ('let', 'var')) and _is_setvalue_expression(tokens, errors_handler, path, i + 1):
-            # TODO: What different between let and var? Remove let and var if it not make sense...
+            # TODO: What different between let and var? Remove let and var if it is not make sense...
             # init variable
             # "let" | "var" <name>(":" <typename>)? "=" <expr>
 
-            current_body['value'].append(
-                _generate_setvalue_syntax_object(tokens, errors_handler, path, namehandler, i + 1)
-            )
+            generated = _generate_setvalue_syntax_object(tokens, errors_handler, path, namehandler, i + 1)
+
+            current_body['value'].append(generated)
 
             if not errors_handler.has_errors():
-                current_body['value'][-1].update({
+                generated.update({
                     'type': 'init-value',
                     'init-type': token.value
                 })
-                current_body['value'][-1]['tokens'].insert(0, token)
+                generated['tokens'].insert(0, token)
 
-            i += current_body['value'][-1]['$tokens-len'] + 1
-            del current_body['value'][-1]['$tokens-len']
+            i += generated['$tokens-len'] + 1
+            del generated['$tokens-len']
         elif _is_if_or_elif(tokens, i):
             # if, elif statement
             # "if" | "elif" <expr> {...}
@@ -233,19 +235,22 @@ def generate_code_body(
 
             i += 1
         elif _is_value_expression(tokens, i):
+            generated = _generate_expression_syntax_object(tokens, errors_handler, path, namehandler, i)
+
             current_body['value'].append(
-                _generate_expression_syntax_object(tokens, errors_handler, path, namehandler, i)
+                generated
             )
 
-            errors_handler.final_push_segment(
-                path,
-                'path statement with no effect',
-                tokens[i],
-                type=ErrorsHandler.WARNING
-            )
+            if not generated['$has-effect']:
+                errors_handler.final_push_segment(
+                    path,
+                    'path statement with no effect',
+                    tokens[i],
+                    type=ErrorsHandler.WARNING
+                )
 
-            i += current_body['value'][-1]['$tokens-len']
-            del current_body['value'][-1]['$tokens-len']
+            i += generated['$tokens-len']
+            del generated['$tokens-len'], generated['$has-effect']
         elif token.type == TokenTypes.NEWLINE:
             pass
         elif token.type == TokenTypes.ENDMARKER:

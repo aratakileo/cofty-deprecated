@@ -49,6 +49,10 @@ def _is_value_expression(
         # MIDDLE_OPS check
 
         return True
+    elif len(tokens) == 2 and _is_name(tokens[0]) and tokens[1].type == TokenTypes.PARENTHESIS and not tokens[1].value:
+        # calling name expression check
+
+        return True
 
     return False
 
@@ -69,6 +73,7 @@ def _generate_expression_syntax_object(
 
     res = {
         '$tokens-len': len(tokens),  # temp value
+        '$has-effect': False,  # temp value
         'tokens': tokens
     }
 
@@ -137,6 +142,14 @@ def _generate_expression_syntax_object(
 
                     if res['type'] != 'tuple':
                         res['value'] = [res['value']]
+    elif _is_name(tokens[0]) and tokens[1].type == TokenTypes.PARENTHESIS:
+        res.update({
+            'type': 'call-name',
+            'called-name': tokens[0].value,
+            'args': [],
+            'returned-type': '$undefined',
+            '$has-effect': True  # temp value
+        })
     else:
         res.update(
             ops.generate_op_expression(tokens, errors_handler, path, namehandler, _generate_expression_syntax_object)
