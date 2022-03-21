@@ -108,6 +108,9 @@ def generate_op_expression(
             fn_generate_expression_syntax_object(tokens[0], errors_handler, path, namehandler, effect_checker=True)
         )
 
+    if errors_handler.has_errors():
+        return {}
+
     res['$has-effect'] = last_lvalue['$has-effect']  # temp value
 
     if '$tokens-len' in last_lvalue:
@@ -129,6 +132,10 @@ def generate_op_expression(
             2 + off,
             effect_checker=True
         )
+
+        if errors_handler.has_errors():
+            return {}
+
         res['$has-effect'] = res['$has-effect'] or invalid_rvalue['$has-effect']  # temp value
 
         del invalid_rvalue['$tokens-len'], invalid_rvalue['$has-effect']

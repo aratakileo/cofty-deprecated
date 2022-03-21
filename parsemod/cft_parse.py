@@ -71,6 +71,9 @@ def generate_code_body(
 
             generated = _generate_setvalue_syntax_object(tokens, errors_handler, path, namehandler, i)
 
+            if errors_handler.has_errors():
+                return {}
+
             current_body['value'].append(generated)
 
             i += generated['$tokens-len']
@@ -81,6 +84,9 @@ def generate_code_body(
             # "let" | "var" <name>(":" <typename>)? "=" <expr>
 
             generated = _generate_setvalue_syntax_object(tokens, errors_handler, path, namehandler, i + 1)
+
+            if errors_handler.has_errors():
+                return {}
 
             current_body['value'].append(generated)
 
@@ -105,6 +111,9 @@ def generate_code_body(
                 right_i=1,
                 expected_type='bool'
             )
+
+            if errors_handler.has_errors():
+                return {}
 
             namehandler.root_init_new_localspace()
 
@@ -156,6 +165,9 @@ def generate_code_body(
                 base_body_type=base_body_type
             )
 
+            if errors_handler.has_errors():
+                return {}
+
             i += 2
         elif _is_fn_init(tokens, errors_handler, path, i):
             type_specification = is_op(tokens[i + 3], ':')
@@ -163,6 +175,7 @@ def generate_code_body(
 
             if not namehandler.init_fn(tokens[i + 1].value, returned_type):
                 errors_handler.final_push_segment(path, f'<Init function `{tokens[i + 1].value}` error>', tokens[i])
+                return {}
 
             args = []
             args_tokens = tokens[i + 2].value
@@ -175,6 +188,10 @@ def generate_code_body(
 
                 for arg_tokens in temp:
                     args.append(_generate_setvalue_syntax_object(arg_tokens, errors_handler, path, namehandler))
+
+                    if errors_handler.has_errors():
+                        return {}
+
                     del args[-1]['$tokens-len']
 
             namehandler.def_fn_args()
@@ -194,6 +211,9 @@ def generate_code_body(
                 'returned-type': returned_type
             })
 
+            if errors_handler.has_errors():
+                return {}
+
             i += 6 if type_specification else 4
         elif _is_kw(token, 'return'):
             if base_body_type != '$fn-body':
@@ -210,6 +230,9 @@ def generate_code_body(
                     i + 1,
                     expected_type=namehandler.base_current_obj['returned-type']
                 )
+
+            if errors_handler.has_errors():
+                return {}
 
             if namehandler.base_current_obj['returned-type'] != 'None' and 'type' in returned_value \
                     and returned_value['type'] == 'None':
@@ -243,6 +266,9 @@ def generate_code_body(
                 effect_checker=True
             )
 
+            if errors_handler.has_errors():
+                return {}
+
             current_body['value'].append(
                 generated
             )
@@ -266,9 +292,6 @@ def generate_code_body(
             return {}
 
         i += 1
-
-        if errors_handler.has_errors():
-            return {}
 
     if '$return-is-used' in main_body:
         if not main_body['$return-is-used'] and namehandler.abs_current_obj['returned-type'] != 'None':

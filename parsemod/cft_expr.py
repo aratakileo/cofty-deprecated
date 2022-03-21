@@ -81,14 +81,24 @@ def _generate_name_call_expression(
         tokens: List[Token] | Token,
         errors_handler: ErrorsHandler,
         path: str,
-        namehandler: NameHandler,
-        i: int = 0
+        namehandler: NameHandler
 ):
+    name = tokens[0].value
+    if not namehandler.has_globalname(name):
+        errors_handler.final_push_segment(path, f'NameError: name \'{name}\' is not defined', tokens[0], fill=True)
+
+        return {}
+
+    if not namehandler.isinstance(name, '$fn'):
+        errors_handler.final_push_segment(path, f'NameError: name \'{name}\' is not a function', tokens[0], fill=True)
+
+        return {}
+
     return {
         'type': 'call-name',
-        'called-name': tokens[0].value,
+        'called-name': name,
         'args': [],
-        'returned-type': '$undefined',
+        'returned-type': namehandler.get_current_body(name)['returned-type'],
         '$has-effect': True  # temp value
     }
 
@@ -140,6 +150,15 @@ def _generate_expression_syntax_object(
 
             if token.value in ('True', 'False'):
                 res['type'] = 'bool'
+            elif not namehandler.has_globalname(token.value):
+                errors_handler.final_push_segment(
+                    path,
+                    f'NameError: name \'{token.value}\' is not defined',
+                    tokens[0],
+                    fill=True
+                )
+
+                return {}
             else:
                 res['type'] = 'name'
                 res['returned-type'] = get_value_returned_type(namehandler.get_current_body(token.value)['value'])
@@ -190,6 +209,9 @@ def _generate_expression_syntax_object(
             _generate_name_call_expression
         ))
 
+    if errors_handler.has_errors():
+        return {}
+
     if get_value_returned_type(res) == '$undefined':
         errors_handler.final_push_segment(
             path,
@@ -204,7 +226,7 @@ def _generate_expression_syntax_object(
             tokens[0],
             fill=True
         )
-        return {'$tokens-len': res['$tokens-len']}
+        return {}
 
     if not effect_checker:
         del res['$has-effect']
