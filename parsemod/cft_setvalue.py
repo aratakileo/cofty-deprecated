@@ -111,10 +111,10 @@ def _generate_setvalue_syntax_object(
     if res['value-type'] is None and res['new-value'] is not None:
         res['value-type'] = get_value_returned_type(res['new-value'])
 
-    _type = res['new-value']['type']
+    _type = res['value-type']
 
-    if _type != '$number':
-        _type = res['value-type']
+    if res['new-value'] is not None:
+        _type = res['new-value']['returned-type']
 
     if not namehandler.set_name(tokens[i].value, _type, res['new-value'], mut=True):
         errors_handler.final_push_segment(path, '<Set name value error>', tokens[i])

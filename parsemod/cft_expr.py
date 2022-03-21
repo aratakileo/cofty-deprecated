@@ -4,7 +4,7 @@ from cft_errors_handler import ErrorsHandler
 from compile.cft_compile import get_num_type
 from cft_kw import _is_name, _is_kw
 from lexermod.cft_token import *
-from typing import List, Tuple
+from typing import List
 import cft_ops as ops
 
 
@@ -18,22 +18,16 @@ def _is_type_expression(token: Token) -> bool:
 def _is_name_call_expression(tokens: List[Token] | Token, i: int = 0, without_tail=False):
     tokens = tokens[i:]
 
-    if len(tokens) < 2 or (without_tail and len(tokens) != 2):
+    if len(tokens) < 2 or (without_tail and len(tokens) != 2) or not _is_name(tokens[0]) \
+            or tokens[1].type != TokenTypes.PARENTHESIS:
         return False
 
-    if _is_name(tokens[0]) and tokens[1].type == TokenTypes.PARENTHESIS:
-        return True
-
-    return False
+    return True
 
 
-def _is_value_expression(
-        tokens: List[Token] | Token,
-        i: int = 0,
-        stop_tokens: Tuple[DummyToken | TokenType] = ...
-) -> bool:
+def _is_value_expression(tokens: List[Token] | Token, i: int = 0) -> bool:
     """<expr>"""
-    tokens = extract_tokens(tokens, i, stop_tokens)
+    tokens = extract_tokens(tokens, i)
 
     if tokens is None:
         return False
@@ -47,7 +41,6 @@ def _is_value_expression(
             for item in tokens[0].value:
                 if not _is_value_expression(item):
                     return False
-
             return True
 
         if tokens[0].type in (TokenTypes.PARENTHESIS, TokenTypes.SQUARE_BRACKETS, TokenTypes.CURLY_BRACES):
@@ -68,8 +61,7 @@ def _is_value_expression(
 
         if ops.is_op(tokens[1 + off], source=ops.MIDDLE_OPS) and _is_value_expression(tokens, 2 + off):
             return True
-
-    elif _is_name_call_expression(tokens, without_tail=True) and not tokens[1].value:
+    elif _is_name_call_expression(tokens, without_tail=True):
         # calling name expression check
 
         return True
@@ -85,20 +77,94 @@ def _generate_name_call_expression(
 ):
     name = tokens[0].value
     if not namehandler.has_globalname(name):
-        errors_handler.final_push_segment(path, f'NameError: name \'{name}\' is not defined', tokens[0], fill=True)
+        errors_handler.final_push_segment(path, f'NameError: name `{name}` is not defined', tokens[0], fill=True)
 
         return {}
 
-    if not namehandler.isinstance(name, '$fn'):
-        errors_handler.final_push_segment(path, f'NameError: name \'{name}\' is not a function', tokens[0], fill=True)
+    if not namehandler.isinstance(name, 'fn'):
+        errors_handler.final_push_segment(path, f'NameError: name `{name}` is not a function', tokens[0], fill=True)
 
         return {}
+
+    args_tokens = []
+
+    if tokens[1].value:
+        if tokens[1].value[0].type == TokenTypes.TUPLE:
+            args_tokens = tokens[1].value[0].value
+
+            if not args_tokens[-1]:
+                del args_tokens[-1]
+        else:
+            args_tokens = [[tokens[1].value]]
+
+    namehandler_obj = namehandler.get_current_body(name)
+    required_positional_args = len(args_tokens)
+
+    if required_positional_args > namehandler_obj['max-args']:
+        errors_handler.final_push_segment(
+            path,
+            f'TypeError: {name}() takes {namehandler_obj["max-args"]} positional arguments '
+            f'but {required_positional_args} was given',
+            tokens[1],
+            fill=True
+        )
+
+        return {}
+
+    expected_kwargs = list(namehandler_obj['args'].keys())
+
+    if required_positional_args < namehandler_obj['positional-args']:
+        missing = namehandler_obj['positional-args'] - required_positional_args
+        missed_args = expected_kwargs[required_positional_args: namehandler_obj['positional-args']]
+        error_tail = f'`{missed_args[-1]}`'
+
+        if missing > 1:
+            error_tail = f'`{missed_args[-2]}` and ' + error_tail
+
+            if missing > 2:
+                for missed_arg in missed_args[:-2][::-1]:
+                    error_tail = f'`{missed_arg}`, ' + error_tail
+
+        error_tail = ('' if missing == 1 else 's') + ': ' + error_tail
+
+        errors_handler.final_push_segment(
+            path,
+            f'TypeError: {name}() missing {missing} required positional argument' + error_tail,
+            tokens[1],
+            fill=True
+        )
+
+        return {}
+
+    args = []
+    for i in range(len(args_tokens)):
+        arg_tokens = args_tokens[i]
+
+        if not arg_tokens:
+            break
+
+        arg = _generate_expression_syntax_object(arg_tokens, errors_handler, path, namehandler)
+
+        if errors_handler.has_errors():
+            return {}
+
+        expected_type = namehandler_obj['args'][expected_kwargs[i]]['type']
+
+        if arg['returned-type'] != '$undefined' and get_value_returned_type(arg) != expected_type:
+            errors_handler.final_push_segment(
+                path,
+                f'TypeError: expected type `{expected_type}`, got `{get_value_returned_type(arg)}`',
+                arg_tokens[0],
+                fill=True
+            )
+
+        args.append(arg)
 
     return {
-        'type': 'call-name',
+        'type': '$call-name',
         'called-name': name,
-        'args': [],
-        'returned-type': namehandler.get_current_body(name)['returned-type'],
+        'args': args,
+        'returned-type': namehandler_obj['returned-type'],
         '$has-effect': True  # temp value
     }
 
@@ -110,11 +176,10 @@ def _generate_expression_syntax_object(
         namehandler: NameHandler,
         i: int = 0,
         right_i: int = 0,
-        stop_tokens: Tuple[DummyToken | TokenType] = ...,
         expected_type: dict | str = ...,
         effect_checker=False
 ):
-    tokens = extract_tokens(tokens, i, stop_tokens)
+    tokens = extract_tokens(tokens, i)
     tokens = tokens[:len(tokens) - right_i]
 
     res = {
@@ -141,9 +206,8 @@ def _generate_expression_syntax_object(
             # includes any number format like integer or decimal
 
             res.update({
-                'type': '$number',
-                'value': token.value,
-                'returned-type': get_num_type(token.value)
+                'type': get_num_type(token.value),
+                'value': token.value
             })
         elif token.type == TokenTypes.NAME:
             res['value'] = token.value
@@ -153,7 +217,7 @@ def _generate_expression_syntax_object(
             elif not namehandler.has_globalname(token.value):
                 errors_handler.final_push_segment(
                     path,
-                    f'NameError: name \'{token.value}\' is not defined',
+                    f'NameError: name `{token.value}` is not defined',
                     tokens[0],
                     fill=True
                 )
@@ -161,7 +225,9 @@ def _generate_expression_syntax_object(
                 return {}
             else:
                 res['type'] = 'name'
-                res['returned-type'] = get_value_returned_type(namehandler.get_current_body(token.value)['value'])
+
+                _value = namehandler.get_current_body(token.value)['value']
+                res['returned-type'] = '$undefined' if _value is None else get_value_returned_type(_value)
 
                 # TODO: remove this if-statement when, returned-type system will be finished
                 # TODO: replace to:

@@ -1,5 +1,5 @@
 from cft_errors_handler import ErrorsHandler
-from .cft_token import Token, TokenTypes
+from lexermod.cft_token import Token, TokenTypes
 
 
 def tokenize_str_next(s: str, path: str, token: Token, errors_handler: ErrorsHandler) -> int:

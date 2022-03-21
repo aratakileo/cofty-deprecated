@@ -1,20 +1,20 @@
-from lexermod.cft_token import Token, TokenTypes, DummyToken, TokenType
 from cft_namehandler import NameHandler, get_value_returned_type
+from lexermod.cft_token import Token, TokenTypes, DummyToken
 from cft_extract_tokens import extract_tokens
 from cft_errors_handler import ErrorsHandler
 from parsemod.cft_fn import _is_fn_init
 from cft_syntaxtree_values import pNone
 from parsemod.cft_ops import is_op
 from cft_is_codebody import *
-from typing import List, Tuple
 from cft_setvalue import *
 from cft_kw import _is_kw
+from typing import List
 from cft_expr import *
 
 
-def _is_if_or_elif(tokens: List[Token] | Token, i: int = 0, stop_tokens: Tuple[DummyToken | TokenType] = ...):
+def _is_if_or_elif(tokens: List[Token] | Token, i: int = 0):
     """"if" <expr> <code-body> ("elif" <expr> <code-body>)? ("else" <code-body>)?"""
-    tokens = extract_tokens(tokens, i, stop_tokens)
+    tokens = extract_tokens(tokens, i)
 
     if tokens is None:
         return False
@@ -29,8 +29,8 @@ def _is_if_or_elif(tokens: List[Token] | Token, i: int = 0, stop_tokens: Tuple[D
     return False
 
 
-def _is_else(tokens: List[Token] | Token, i: int = 0, stop_tokens: Tuple[DummyToken | TokenType] = ...):
-    tokens = extract_tokens(tokens, i, stop_tokens)
+def _is_else(tokens: List[Token] | Token, i: int = 0):
+    tokens = extract_tokens(tokens, i)
 
     if tokens is None:
         return False
@@ -170,8 +170,9 @@ def generate_code_body(
 
             i += 2
         elif _is_fn_init(tokens, errors_handler, path, i):
-            type_specification = is_op(tokens[i + 3], ':')
+            type_specification = is_op(tokens[i + 3], '->')
             returned_type = 'None' if not type_specification else tokens[i + 4].value
+            positional_args = 0
 
             if not namehandler.init_fn(tokens[i + 1].value, returned_type):
                 errors_handler.final_push_segment(path, f'<Init function `{tokens[i + 1].value}` error>', tokens[i])
@@ -187,14 +188,22 @@ def generate_code_body(
                     temp = [args_tokens]
 
                 for arg_tokens in temp:
-                    args.append(_generate_setvalue_syntax_object(arg_tokens, errors_handler, path, namehandler))
+                    if not arg_tokens:
+                        break
+
+                    arg = _generate_setvalue_syntax_object(arg_tokens, errors_handler, path, namehandler)
 
                     if errors_handler.has_errors():
                         return {}
 
-                    del args[-1]['$tokens-len']
+                    if arg['new-value'] is None:
+                        positional_args += 1
 
-            namehandler.def_fn_args()
+                    args.append(arg)
+
+                    del arg['$tokens-len']
+
+            namehandler.def_fn_args(positional_args, len(args))
 
             current_body['value'].append({
                 'type': 'fn-init',
@@ -244,6 +253,8 @@ def generate_code_body(
                     fill=True
                 )
 
+                return {}
+
             current_body['value'].append({
                 'type': 'return',
                 'value': returned_value
@@ -289,6 +300,9 @@ def generate_code_body(
             break
         elif not errors_handler.has_errors():
             errors_handler.final_push_segment(path, 'SyntaxError: invalid syntax', token, fill=True)
+            return {}
+
+        if errors_handler.has_errors():
             return {}
 
         i += 1

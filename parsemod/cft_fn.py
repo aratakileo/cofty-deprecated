@@ -5,28 +5,28 @@ from cft_errors_handler import ErrorsHandler
 from parsemod.cft_is_codebody import *
 from parsemod.cft_ops import is_op
 from lexermod.cft_token import *
-from typing import List, Tuple
+from typing import List
 
 
 def _is_fn_init(
         tokens: List[Token] | Token,
         errors_handler: ErrorsHandler,
         path: str,
-        i: int = 0,
-        stop_tokens: Tuple[DummyToken | TokenType] = ...
+        i: int = 0
 ):
     """ "fn" <fn-name> "("<arg>*")" (":" <returned-type>)? <code-body>"""
 
-    tokens = extract_tokens(tokens, i, stop_tokens)
+    tokens = extract_tokens(tokens, i)
 
     if tokens is None or not _is_kw(tokens[0], 'fn'):
         return False
 
     type_annotation = len(tokens) != 4
 
-    if len(tokens) not in (4, 6) or not _is_name(tokens[1]) or tokens[2].type != TokenTypes.PARENTHESIS \
-            or not (type_annotation or _is_code_body(tokens[3])) or (
-            type_annotation and not (is_op(tokens[3], ':') and _is_name(tokens[4]) and _is_code_body(tokens[5]))
+    if len(tokens) not in (4, 6) or not _is_name(tokens[1]) or tokens[2].type != TokenTypes.PARENTHESIS or not (
+            type_annotation or _is_code_body(tokens[3])
+    ) or (
+            type_annotation and not (is_op(tokens[3], '->') and _is_name(tokens[4]) and _is_code_body(tokens[5]))
     ):
         errors_handler.final_push_segment(
             path,
@@ -43,7 +43,16 @@ def _is_fn_init(
             has_default_argument = False
 
             for arg_tokens in args_tokens[0].value:
+                if not arg_tokens:
+                    break
+
                 if not _is_setvalue_expression(arg_tokens, errors_handler, path):
+                    errors_handler.final_push_segment(
+                        path,
+                        'SyntaxError: invalid syntax',
+                        arg_tokens[0],
+                        fill=True
+                    )
                     return False
 
                 if DummyToken(TokenTypes.OP, '=') in arg_tokens:

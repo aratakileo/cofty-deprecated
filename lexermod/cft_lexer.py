@@ -1,9 +1,9 @@
-from .cft_token import Token, DummyToken, TokenTypes
+from lexermod.cft_token import Token, DummyToken, TokenTypes
 from cft_errors_handler import ErrorsHandler
-from .cft_tokenize_str import tokenize_str_next
+from lexermod.cft_tokenize_str import tokenize_str_next
 from re import finditer
 from typing import List
-from .cft_regex import *
+from lexermod.cft_regex import *
 
 
 def generate_tokens(s: str, path: str, errors_handler: ErrorsHandler):
@@ -69,7 +69,7 @@ def generate_tokens(s: str, path: str, errors_handler: ErrorsHandler):
                     value[0] = '0'
                     errors_handler.final_push_segment(
                         path,
-                        'if you meant to write a `float` literal, try changing it like this',
+                        'if you meant to write a `float` literal, try changing it like this 2',
                         token,
                         type=ErrorsHandler.HELP,
                         correct='@'.join(value),

@@ -102,8 +102,7 @@ class NameHandler:
 
     def set_name(self, name: str, _type: str, value: dict, **attrs):
         if _type is not None and value is not None and (
-            get_value_returned_type(value) != _type and get_value_returned_type(value) not in '$undefined'
-            and not _type.startswith('$')
+            get_value_returned_type(value) != _type and get_value_returned_type(value) != '$undefined'
         ) or (
             self.has_globalname(name) and self._accessible_names[name]['type'] != get_value_returned_type(value)
         ):
@@ -122,8 +121,12 @@ class NameHandler:
 
         return True
 
-    def def_fn_args(self):
-        self.abs_current_obj['args'] = {}
+    def def_fn_args(self, positional_args: int, max_args: int):
+        self.abs_current_obj.update({
+            'args': {},
+            'positional-args': positional_args,
+            'max-args': max_args
+        })
 
         for name in self.abs_current_obj['value']:
             self.abs_current_obj['args'][name] = self.abs_current_obj['value'][name]
