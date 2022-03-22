@@ -1,18 +1,17 @@
 from cft_namehandler import NameHandler, get_value_returned_type
 from lexermod.cft_token import Token, TokenTypes, DummyToken
 from parsemod.cft_extract_tokens import extract_tokens
+from parsemod.cft_syntaxtree_values import pNone
 from cft_errors_handler import ErrorsHandler
 from parsemod.cft_fn import _is_fn_init
-from parsemod.cft_syntaxtree_values import pNone
-from parsemod.cft_ops import is_op
 from parsemod.cft_is_codebody import *
 from parsemod.cft_setvalue import *
+from parsemod.cft_ops import is_op
 from parsemod.cft_kw import _is_kw
-from typing import List
 from parsemod.cft_expr import *
 
 
-def _is_if_or_elif(tokens: List[Token] | Token, i: int = 0):
+def _is_if_or_elif(tokens: list[Token] | Token, i: int = 0):
     """"if" <expr> <code-body> ("elif" <expr> <code-body>)?"""
     tokens = extract_tokens(tokens, i)
 
@@ -29,7 +28,7 @@ def _is_if_or_elif(tokens: List[Token] | Token, i: int = 0):
     return False
 
 
-def _is_else(tokens: List[Token] | Token, i: int = 0):
+def _is_else(tokens: list[Token] | Token, i: int = 0):
     """("else" <code-body>)"""
     tokens = extract_tokens(tokens, i)
 
@@ -57,7 +56,7 @@ def _has_constant_expr(main_body: dict[any, any], value: bool):
 
 
 def generate_code_body(
-        tokens: List[Token],
+        tokens: list[Token],
         errors_handler: ErrorsHandler,
         path: str,
         namehandler: NameHandler,

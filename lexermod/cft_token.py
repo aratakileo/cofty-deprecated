@@ -1,4 +1,3 @@
-from typing import List, Tuple
 from copy import deepcopy
 from enum import Enum
 
@@ -48,9 +47,9 @@ class TokenType:
 
 class DummyToken:
     type: TokenTypes
-    value: str | List['Token'] | List[List['Token']]
+    value: str | list['Token'] | list[list['Token']]
 
-    def __init__(self, t: TokenTypes | None, value: str | List['Token'] | List[List['Token']]):
+    def __init__(self, t: TokenTypes | None, value: str | list['Token'] | list[list['Token']]):
         self.type = t
         self.value = value
 
@@ -89,17 +88,17 @@ class DummyToken:
 
 class Token:
     type: TokenTypes
-    value: str | List['Token'] | List[List['Token']]
-    start: Tuple[int, int, int]
-    end: Tuple[int, int]
+    value: str | list['Token'] | list[list['Token']]
+    start: tuple[int, int, int]
+    end: tuple[int, int]
     line: str
 
     def __init__(
             self,
             t: TokenTypes,
-            value: str | List['Token'] | List[List['Token']],
-            start: Tuple[int, int, int],
-            end: Tuple[int, int],
+            value: str | list['Token'] | list[list['Token']],
+            start: tuple[int, int, int],
+            end: tuple[int, int],
             line: str
     ):
         self.type = t

@@ -1,7 +1,7 @@
 from lexermod.cft_token import Token, TokenTypes
 from cft_errors_handler import ErrorsHandler
 from cft_namehandler import NameHandler
-from typing import List
+
 
 LBOOL_OPS = ['not']
 """Left operators that are always return type `bool`"""
@@ -70,7 +70,7 @@ MIDDLE_OPS_PRIORITY = {
 
 
 def generate_op_expression(
-        tokens: List[Token] | Token,
+        tokens: list[Token] | Token,
         errors_handler: ErrorsHandler,
         path: str,
         namehandler: NameHandler,

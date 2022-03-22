@@ -4,11 +4,10 @@ from cft_errors_handler import ErrorsHandler
 from parsemod.cft_kw import _is_name
 from parsemod.cft_ops import is_op
 from parsemod.cft_expr import *
-from typing import List
 
 
 def _is_setvalue_expression(
-        tokens: List[Token],
+        tokens: list[Token],
         errors_handler: ErrorsHandler,
         path: str,
         i: int = 0,
@@ -57,7 +56,7 @@ def _is_setvalue_expression(
 
 
 def _generate_setvalue_syntax_object(
-        tokens: List[Token],
+        tokens: list[Token],
         errors_handler: ErrorsHandler,
         path: str,
         namehandler: NameHandler,

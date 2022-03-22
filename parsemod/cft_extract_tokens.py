@@ -1,11 +1,10 @@
 from lexermod.cft_token import *
-from typing import List
 
 
 stop_tokens = (TokenType(TokenTypes.ENDMARKER), TokenType(TokenTypes.NEWLINE))
 
 
-def extract_tokens(tokens: List[Token] | Token, i: int = 0):
+def extract_tokens(tokens: list[Token] | Token, i: int = 0):
     if isinstance(tokens, Token):
         tokens = [tokens]
 

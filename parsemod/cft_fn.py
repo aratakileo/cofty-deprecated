@@ -5,11 +5,10 @@ from cft_errors_handler import ErrorsHandler
 from parsemod.cft_is_codebody import *
 from parsemod.cft_ops import is_op
 from lexermod.cft_token import *
-from typing import List
 
 
 def _is_fn_init(
-        tokens: List[Token] | Token,
+        tokens: list[Token] | Token,
         errors_handler: ErrorsHandler,
         path: str,
         i: int = 0

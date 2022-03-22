@@ -3,10 +3,9 @@ from parsemod.cft_extract_tokens import extract_tokens
 from cft_errors_handler import ErrorsHandler
 from compile.cft_compile import get_num_type
 from parsemod.cft_kw import _is_name, _is_kw
-from lexermod.cft_token import *
-from typing import List
-import parsemod.cft_ops as ops
 from py_utils import isnotfinished
+from lexermod.cft_token import *
+import parsemod.cft_ops as ops
 
 
 def _is_type_expression(token: Token) -> bool:
@@ -16,7 +15,7 @@ def _is_type_expression(token: Token) -> bool:
     return False
 
 
-def _is_name_call_expression(tokens: List[Token] | Token, i: int = 0, without_tail=False):
+def _is_name_call_expression(tokens: list[Token] | Token, i: int = 0, without_tail=False):
     tokens = tokens[i:]
 
     if len(tokens) < 2 or (without_tail and len(tokens) != 2) or not _is_name(tokens[0]) \
@@ -26,7 +25,7 @@ def _is_name_call_expression(tokens: List[Token] | Token, i: int = 0, without_ta
     return True
 
 
-def _is_value_expression(tokens: List[Token] | Token, i: int = 0) -> bool:
+def _is_value_expression(tokens: list[Token] | Token, i: int = 0) -> bool:
     """<expr>"""
     tokens = extract_tokens(tokens, i)
 
@@ -71,7 +70,7 @@ def _is_value_expression(tokens: List[Token] | Token, i: int = 0) -> bool:
 
 
 def _generate_name_call_expression(
-        tokens: List[Token] | Token,
+        tokens: list[Token] | Token,
         errors_handler: ErrorsHandler,
         path: str,
         namehandler: NameHandler
@@ -176,7 +175,7 @@ def _generate_name_call_expression(
 
 
 def _generate_expression_syntax_object(
-        tokens: List[Token] | Token,
+        tokens: list[Token] | Token,
         errors_handler: ErrorsHandler,
         path: str,
         namehandler: NameHandler,

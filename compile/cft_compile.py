@@ -1,5 +1,5 @@
-from os.path import abspath
 from cft_namehandler import NameHandler
+from os.path import abspath
 from re import findall
 
 

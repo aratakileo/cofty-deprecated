@@ -1,9 +1,8 @@
 from lexermod.cft_token import Token, DummyToken, TokenTypes
-from cft_errors_handler import ErrorsHandler
 from lexermod.cft_tokenize_str import tokenize_str_next
-from re import finditer
-from typing import List
+from cft_errors_handler import ErrorsHandler
 from lexermod.cft_regex import *
+from re import finditer
 
 
 def generate_tokens(s: str, path: str, errors_handler: ErrorsHandler):
@@ -160,7 +159,7 @@ def _append(_current_body: DummyToken | Token, _token: DummyToken | Token):
         _current_body.value.append(_token)
 
 
-def compose_tokens(s: str, path: str, tokens: List[Token], errors_handler: ErrorsHandler):
+def compose_tokens(s: str, path: str, tokens: list[Token], errors_handler: ErrorsHandler):
     main_body = DummyToken(TokenTypes.MAIN, [])
     current_body = main_body
 
