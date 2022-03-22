@@ -3,7 +3,6 @@ from cft_errors_handler import ErrorsHandler
 from cft_namehandler import NameHandler
 from typing import List
 
-
 LBOOL_OPS = ['not']
 """Left operators that are always return type `bool`"""
 
@@ -112,11 +111,12 @@ def generate_op_expression(
         return {}
 
     res['$has-effect'] = last_lvalue['$has-effect']  # temp value
+    res['$constant-expr'] = last_lvalue['$constant-expr']  # temp value
 
     if '$tokens-len' in last_lvalue:
         del last_lvalue['$tokens-len']  # cleaning the temp value
 
-    del last_lvalue['$has-effect']  # cleaning the temp values
+    del last_lvalue['$has-effect'], last_lvalue['$constant-expr']  # cleaning the temp values
 
     if 1 <= len(tokens) <= 2:
         # LOPS generation
@@ -137,8 +137,11 @@ def generate_op_expression(
             return {}
 
         res['$has-effect'] = res['$has-effect'] or invalid_rvalue['$has-effect']  # temp value
+        res['$constant-expr'] = res['$constant-expr'] and invalid_rvalue['$constant-expr'] \
+            and res['$constant-expr'] is not False  # `is not False` needs when `False and False`
+                                                    # for `False and False and False is not False => False`
 
-        del invalid_rvalue['$tokens-len'], invalid_rvalue['$has-effect']
+        del invalid_rvalue['$tokens-len'], invalid_rvalue['$has-effect'], invalid_rvalue['$constant-expr']
 
         new_value = {
             'type': 'op',

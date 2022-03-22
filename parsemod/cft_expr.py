@@ -6,6 +6,7 @@ from parsemod.cft_kw import _is_name, _is_kw
 from lexermod.cft_token import *
 from typing import List
 import parsemod.cft_ops as ops
+from py_utils import isnotfinished
 
 
 def _is_type_expression(token: Token) -> bool:
@@ -169,7 +170,8 @@ def _generate_name_call_expression(
         'called-name': name,
         'args': args,
         'returned-type': namehandler_obj['returned-type'],
-        '$has-effect': True  # temp value
+        '$has-effect': True,  # temp value
+        '$constant-expr': False  # temp value
     }
 
 
@@ -188,7 +190,8 @@ def _generate_expression_syntax_object(
 
     res = {
         '$tokens-len': len(tokens),  # temp value
-        '$has-effect': False  # temp value
+        '$has-effect': False,  # temp value,
+        '$constant-expr': True  # temp value
     }
 
     if len(tokens) == 1:
@@ -228,7 +231,10 @@ def _generate_expression_syntax_object(
 
                 return {}
             else:
-                res['type'] = 'name'
+                res.update({
+                    'type': 'name',
+                    '$constant-expr': False
+                })
 
                 _obj = namehandler.get_current_body(token.value)
 
@@ -236,12 +242,9 @@ def _generate_expression_syntax_object(
                     res['returned-type'] = _obj['returned-type']
                 else:
                     res['returned-type'] = _obj['type']
-
-                # TODO: remove this if-statement when, returned-type system will be finished
-                # TODO: replace to:
-                # TODO: namehandler.get_current_name_body(token.value)['type']
         elif token.type == TokenTypes.TUPLE:
             # <expression>, <expression>
+            isnotfinished()
 
             res.update({
                 'type': 'tuple',
@@ -253,6 +256,8 @@ def _generate_expression_syntax_object(
 
                 del res['value'][-1]['$tokens-len']
         elif token.type in (TokenTypes.PARENTHESIS, TokenTypes.SQUARE_BRACKETS, TokenTypes.CURLY_BRACES):
+            isnotfinished()
+
             if not token.value:
                 res.update({
                     'type': {

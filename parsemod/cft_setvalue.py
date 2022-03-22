@@ -68,7 +68,8 @@ def _generate_setvalue_syntax_object(
         'value-name': tokens[i].value,
         'value-type': None,
         'new-value': None,
-        '$tokens-len': 2  # temp key
+        '$tokens-len': 2,  # temp value
+        '$constant-expr': True  # temp value
     }
 
     if tokens[i + 1].value == '=':
@@ -84,7 +85,10 @@ def _generate_setvalue_syntax_object(
         if errors_handler.has_errors(): return {'$tokens-len': res['$tokens-len']}
 
         res['$tokens-len'] += _new_value['$tokens-len']
-        del _new_value['$tokens-len']
+        res['$constant-expr'] = _new_value['$constant-expr']
+
+        del _new_value['$tokens-len'], _new_value['$constant-expr']
+
         res['new-value'] = _new_value
     else:
         # <value-name>: <value-type>
@@ -105,7 +109,10 @@ def _generate_setvalue_syntax_object(
             if errors_handler.has_errors(): return {'$tokens-len': res['$tokens-len']}
 
             res['$tokens-len'] += _new_value['$tokens-len']
-            del _new_value['$tokens-len']
+            res['$constant-expr'] = _new_value['$constant-expr']
+
+            del _new_value['$tokens-len'], _new_value['$constant-expr']
+
             res['new-value'] = _new_value
 
     if res['value-type'] is None and res['new-value'] is not None:

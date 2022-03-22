@@ -22,7 +22,7 @@ def _is_if_or_elif(tokens: List[Token] | Token, i: int = 0):
     if len(tokens) < 3:
         return False
 
-    if tokens[0].type == TokenTypes.NAME and tokens[0].value in ('if', 'elif') and _is_value_expression(tokens[:-1], 1)\
+    if tokens[0].type == TokenTypes.NAME and tokens[0].value in ('if', 'elif') and _is_value_expression(tokens[:-1], 1) \
             and _is_code_body(tokens[-1]):
         return True
 
@@ -45,22 +45,33 @@ def _is_else(tokens: List[Token] | Token, i: int = 0):
     return False
 
 
+MAIN_BODY_ADVANCED_OPTIONS = {
+    'constant-expr': True
+}
+
+
+def _has_constant_expr(main_body: dict[any, any], value: bool):
+    if 'constant-expr' in main_body:
+        main_body['constant-expr'] = main_body['constant-expr'] and value is not False
+        # `is not False` needs when `False and False` for `False and False and False is not False => False`
+
+
 def generate_code_body(
         tokens: List[Token],
         errors_handler: ErrorsHandler,
         path: str,
         namehandler: NameHandler,
         body_type: str = '$main-body',
-        base_body_type: str = '$main-body'
+        base_body_type: str = '$main-body',
+        advanced_options: dict[any, any] = {}
 ):
     main_body = {
         'type': body_type,
         'value': []
     }
-    current_body = main_body
+    main_body.update(advanced_options)
 
-    if body_type == '$fn-body':
-        main_body['$return-is-used'] = False  # temp value
+    current_body = main_body
 
     i = 0
     while i < len(tokens):
@@ -78,7 +89,9 @@ def generate_code_body(
             current_body['value'].append(generated)
 
             i += generated['$tokens-len']
-            del generated['$tokens-len']
+            del generated['$tokens-len'], generated['$constant-expr']
+
+            _has_constant_expr(main_body, False)
         elif _is_kw(token, ('let', 'var', 'const')) and _is_setvalue_expression(tokens, errors_handler, path, i + 1):
             # init variable
             # ("let" | "var" | "const") <name>(":" <typename>)? "=" <expr>
@@ -104,7 +117,10 @@ def generate_code_body(
                 })
 
             i += generated['$tokens-len'] + 1
-            del generated['$tokens-len']
+
+            _has_constant_expr(main_body, generated['$constant-expr'])
+
+            del generated['$tokens-len'], generated['$constant-expr']
         elif _is_if_or_elif(tokens, i):
             # if, elif statement
             # "if" | "elif" <expr> {...}
@@ -155,6 +171,8 @@ def generate_code_body(
 
             i += _condition['$tokens-len'] + 1
             del _condition['$tokens-len']
+
+            _has_constant_expr(main_body, False)
         elif _is_else(tokens, i):
             # ... else {...}
             if len(current_body['value']) == 0 or current_body['value'][-1]['type'] != 'if-statement':
@@ -222,7 +240,10 @@ def generate_code_body(
                     path,
                     namehandler,
                     body_type='$fn-body',
-                    base_body_type='$fn-body'
+                    base_body_type='$fn-body',
+                    advanced_options={
+                        '$return-is-used': False  # temp value
+                    }
                 ),
                 'returned-type': returned_type
             })
@@ -301,6 +322,8 @@ def generate_code_body(
 
             i += generated['$tokens-len']
             del generated['$tokens-len'], generated['$has-effect']
+
+            _has_constant_expr(main_body, False)
         elif token.type == TokenTypes.NEWLINE:
             pass
         elif token.type == TokenTypes.ENDMARKER:
@@ -353,7 +376,13 @@ if __name__ == '__main__':
         else:
             namehandler = NameHandler()
 
-            syntaxtree = generate_code_body(tokens, errors_handler, '../test.cft', namehandler)
+            syntaxtree = generate_code_body(
+                tokens,
+                errors_handler,
+                '../test.cft',
+                namehandler,
+                advanced_options=MAIN_BODY_ADVANCED_OPTIONS
+            )
             print('Third stage:', syntaxtree, '\n   - NameHandler:', namehandler.to_json())
 
             if errors_handler.has_errors() or errors_handler.has_warnings():
