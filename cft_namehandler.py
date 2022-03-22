@@ -1,3 +1,4 @@
+from cft_Lib.py_core import cft_builtins
 from py_utils import isnotfinished
 from json import dumps, loads
 from copy import deepcopy
@@ -23,6 +24,8 @@ class NameHandler:
 
         self.current_obj = self._core_namespace['$main']
         self._accessible_names = {}
+
+        cft_builtins.define(self)
 
     @property
     def abs_current_obj(self):
@@ -103,7 +106,7 @@ class NameHandler:
     def set_name(self, name: str, _type: str, value: dict, **attrs):
         if _type is not None and value is not None and (
             get_value_returned_type(value) != _type and get_value_returned_type(value) != '$undefined'
-        ) or (
+        ) and (
             self.has_globalname(name) and self._accessible_names[name]['type'] != get_value_returned_type(value)
         ):
             return False

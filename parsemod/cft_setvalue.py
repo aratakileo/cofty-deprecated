@@ -3,7 +3,7 @@ from lexermod.cft_token import Token, TokenTypes
 from cft_errors_handler import ErrorsHandler
 from parsemod.cft_kw import _is_name
 from parsemod.cft_ops import is_op
-from cft_expr import *
+from parsemod.cft_expr import *
 from typing import List
 
 
@@ -114,7 +114,7 @@ def _generate_setvalue_syntax_object(
     _type = res['value-type']
 
     if res['new-value'] is not None:
-        _type = res['new-value']['returned-type']
+        _type = get_value_returned_type(res['new-value'])
 
     if not namehandler.set_name(tokens[i].value, _type, res['new-value'], mut=True):
         errors_handler.final_push_segment(path, '<Set name value error>', tokens[i])

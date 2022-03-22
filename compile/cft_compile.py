@@ -1,4 +1,5 @@
 from os.path import abspath
+from cft_namehandler import NameHandler
 from re import findall
 
 
@@ -49,15 +50,57 @@ def get_num_type(num: str):
 
 
 CVARS = {
-    'standard_lib_path': abspath('../Lib').replace('\\', '/'),
+    'standard_lib_path': abspath('./cft_Lib').replace('\\', '/'),
     'main_body': '',
     'global_body': ''
 }
 
 
-def compile_to_c(syntaxtree: dict):
-    with open('main.c', 'r', encoding='utf-8') as f:
+_used_compile_names = set()
+
+
+def _get_compile_name(cft_name: str, namehandler: NameHandler):
+    _name_obj = namehandler.get_current_body(cft_name)
+
+    if 'compile-name' in _name_obj:
+        compile_name = _name_obj['compile-name']
+    else:
+        compile_name = '_cft_' + cft_name
+
+        i = 0
+        while compile_name in _used_compile_names:
+            compile_name = f'_cft_{cft_name}{i}'
+            i += 1
+
+    _used_compile_names.add(compile_name)
+    return compile_name
+
+
+def _obj_to_c(syntaxtree: dict, namehandler: NameHandler, auto_add=True):
+    res = ''
+    _type = syntaxtree['type']
+    if _type == '$main-body':
+        for obj in syntaxtree['value']:
+            res += _obj_to_c(obj, namehandler, True)
+    elif _type == '$call-name':
+        res += f'{_get_compile_name(syntaxtree["called-name"], namehandler)}' \
+               + f'({", ".join([_obj_to_c(obj, namehandler, False) for obj in syntaxtree["args"]])})' + ';\n'
+    elif _type == 'str':
+        res += f'"{syntaxtree["value"]}"'
+
+    if auto_add:
+        CVARS['main_body'] += res
+
+    return res
+
+
+def compile_to_c(syntaxtree: dict, namehandler: NameHandler):
+    with open('./compile/main.c', 'r', encoding='utf-8') as f:
         main_c = f.read()
+
+    CVARS['main_body'] = CVARS['global_body'] = ''
+
+    _obj_to_c(syntaxtree, namehandler, False)
 
     for var in findall(r'\${(.+)}', main_c):
         main_c = main_c.replace(f'${{{var}}}', CVARS[var.strip()])
@@ -67,7 +110,8 @@ def compile_to_c(syntaxtree: dict):
 
 __all__ = (
     'compile_num',
-    'get_num_type'
+    'get_num_type',
+    'compile_to_c'
 )
 
 

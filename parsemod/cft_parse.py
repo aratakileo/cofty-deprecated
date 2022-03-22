@@ -1,19 +1,19 @@
 from cft_namehandler import NameHandler, get_value_returned_type
 from lexermod.cft_token import Token, TokenTypes, DummyToken
-from cft_extract_tokens import extract_tokens
+from parsemod.cft_extract_tokens import extract_tokens
 from cft_errors_handler import ErrorsHandler
 from parsemod.cft_fn import _is_fn_init
-from cft_syntaxtree_values import pNone
+from parsemod.cft_syntaxtree_values import pNone
 from parsemod.cft_ops import is_op
-from cft_is_codebody import *
-from cft_setvalue import *
-from cft_kw import _is_kw
+from parsemod.cft_is_codebody import *
+from parsemod.cft_setvalue import *
+from parsemod.cft_kw import _is_kw
 from typing import List
-from cft_expr import *
+from parsemod.cft_expr import *
 
 
 def _is_if_or_elif(tokens: List[Token] | Token, i: int = 0):
-    """"if" <expr> <code-body> ("elif" <expr> <code-body>)? ("else" <code-body>)?"""
+    """"if" <expr> <code-body> ("elif" <expr> <code-body>)?"""
     tokens = extract_tokens(tokens, i)
 
     if tokens is None:
@@ -30,6 +30,7 @@ def _is_if_or_elif(tokens: List[Token] | Token, i: int = 0):
 
 
 def _is_else(tokens: List[Token] | Token, i: int = 0):
+    """("else" <code-body>)"""
     tokens = extract_tokens(tokens, i)
 
     if tokens is None:
@@ -78,10 +79,16 @@ def generate_code_body(
 
             i += generated['$tokens-len']
             del generated['$tokens-len']
-        elif _is_kw(token, ('let', 'var')) and _is_setvalue_expression(tokens, errors_handler, path, i + 1):
-            # TODO: What different between let and var? Remove let and var if it is not make sense...
+        elif _is_kw(token, ('let', 'var', 'const')) and _is_setvalue_expression(tokens, errors_handler, path, i + 1):
             # init variable
-            # "let" | "var" <name>(":" <typename>)? "=" <expr>
+            # ("let" | "var" | "const") <name>(":" <typename>)? "=" <expr>
+
+            # what does that mean?
+            # let - visible only in current body
+            # var - visible only in current function
+            # const - constant value, visible only in current function
+
+            # TODO: MAKE THAT'S MODIFICATIONS SYSTEM
 
             generated = _generate_setvalue_syntax_object(tokens, errors_handler, path, namehandler, i + 1)
 

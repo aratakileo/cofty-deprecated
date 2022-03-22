@@ -19,5 +19,6 @@
 
 #define _cft_string(_cft_value) L##_cft_value
 #define _cft_printf(_cft_value, ...) wprintf(_cft_string(_cft_value), __VA_ARGS__)
+#define _cft_print(_cft_value) wprintf(_cft_string(_cft_value))
 
 #endif

@@ -1,9 +1,9 @@
 from lexermod.cft_token import Token, TokenTypes
-from cft_ops import ALL_OPS
+from parsemod.cft_ops import ALL_OPS
 
 
 # that names can not be used like a variable's, a function's name etc.
-KEYWORDS = ['if', 'else', 'elif', 'let', 'var', 'True', 'False', 'fn', 'return']
+KEYWORDS = ['if', 'else', 'elif', 'let', 'var', 'const', 'True', 'False', 'fn', 'return']
 
 
 def _is_kw(

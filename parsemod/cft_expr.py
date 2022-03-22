@@ -1,11 +1,11 @@
 from cft_namehandler import NameHandler, get_value_returned_type
-from cft_extract_tokens import extract_tokens
+from parsemod.cft_extract_tokens import extract_tokens
 from cft_errors_handler import ErrorsHandler
 from compile.cft_compile import get_num_type
-from cft_kw import _is_name, _is_kw
+from parsemod.cft_kw import _is_name, _is_kw
 from lexermod.cft_token import *
 from typing import List
-import cft_ops as ops
+import parsemod.cft_ops as ops
 
 
 def _is_type_expression(token: Token) -> bool:
@@ -95,7 +95,7 @@ def _generate_name_call_expression(
             if not args_tokens[-1]:
                 del args_tokens[-1]
         else:
-            args_tokens = [[tokens[1].value]]
+            args_tokens = [tokens[1].value]
 
     namehandler_obj = namehandler.get_current_body(name)
     required_positional_args = len(args_tokens)
@@ -148,7 +148,11 @@ def _generate_name_call_expression(
         if errors_handler.has_errors():
             return {}
 
-        expected_type = namehandler_obj['args'][expected_kwargs[i]]['type']
+        del arg['$tokens-len']
+
+        expected_type = namehandler_obj['args'][expected_kwargs[i]]
+        expected_type = expected_type['type'] if expected_type['value'] is None \
+            else get_value_returned_type(expected_type['value'])
 
         if arg['returned-type'] != '$undefined' and get_value_returned_type(arg) != expected_type:
             errors_handler.final_push_segment(
@@ -199,7 +203,7 @@ def _generate_expression_syntax_object(
 
             res.update({
                 # `c` is prefix before quotes that's means is char, not string
-                'type': 'string' if 'c' not in token.value[:_index].lower() else 'char',
+                'type': 'str' if 'c' not in token.value[:_index].lower() else 'char',
                 'value': token.value[_index + 1:-1]
             })
         elif token.type == TokenTypes.NUMBER:
@@ -226,8 +230,12 @@ def _generate_expression_syntax_object(
             else:
                 res['type'] = 'name'
 
-                _value = namehandler.get_current_body(token.value)['value']
-                res['returned-type'] = '$undefined' if _value is None else get_value_returned_type(_value)
+                _obj = namehandler.get_current_body(token.value)
+
+                if namehandler.isinstance(token.value, 'fn'):
+                    res['returned-type'] = _obj['returned-type']
+                else:
+                    res['returned-type'] = _obj['type']
 
                 # TODO: remove this if-statement when, returned-type system will be finished
                 # TODO: replace to:
