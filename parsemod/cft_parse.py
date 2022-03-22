@@ -52,8 +52,8 @@ MAIN_BODY_ADVANCED_OPTIONS = {
 
 def _has_constant_expr(main_body: dict[any, any], value: bool):
     if 'constant-expr' in main_body:
-        main_body['constant-expr'] = main_body['constant-expr'] and value is not False
-        # `is not False` needs when `False and False` for `False and False and False is not False => False`
+        main_body['constant-expr'] = main_body['constant-expr'] and value is True
+        # `is True` needs when `False and False` for `False and False and False is not False => False`
 
 
 def generate_code_body(
