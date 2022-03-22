@@ -138,7 +138,7 @@ def generate_op_expression(
 
         res['$has-effect'] = res['$has-effect'] or invalid_rvalue['$has-effect']  # temp value
         res['$constant-expr'] = res['$constant-expr'] and invalid_rvalue['$constant-expr'] \
-            and res['$constant-expr'] is not False  # `is not False` needs when `False and False`
+            and res['$constant-expr'] is True  # `is True` needs when `False and False`
                                                     # for `False and False and False is not False => False`
 
         del invalid_rvalue['$tokens-len'], invalid_rvalue['$has-effect'], invalid_rvalue['$constant-expr']
