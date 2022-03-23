@@ -62,6 +62,10 @@ At first, you need
 
 > __*The compilation of the code is not ready yet, and the language itself is not finished yet and does not have support for the minimum allowable syntax. Using the project's capabilities at this stage is at your own risk!*__
 
+### Hello World
+```rust
+print('Hello World!')
+```
 <!--
 # Different languages syntax comparison
 ### Program starting
