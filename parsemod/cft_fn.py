@@ -44,7 +44,7 @@ def _is_fn_init(
                 if not arg_tokens:
                     break
 
-                if not _is_setvalue_expression(arg_tokens, errors_handler, path):
+                if not _is_setvalue_expression(arg_tokens, errors_handler, path, init_type='let'):
                     errors_handler.final_push_segment(
                         path,
                         'SyntaxError: invalid syntax',
@@ -63,7 +63,7 @@ def _is_fn_init(
                         fill=True
                     )
                     return False
-        elif not _is_setvalue_expression(args_tokens, errors_handler, path):
+        elif not _is_setvalue_expression(args_tokens, errors_handler, path, init_type='let'):
             return False
 
     return True

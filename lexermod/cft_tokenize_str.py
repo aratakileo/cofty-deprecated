@@ -7,7 +7,7 @@ def tokenize_str_next(s: str, path: str, token: Token, errors_handler: ErrorsHan
     _s = s[token.start[2] + len(token.value):]
     prefix = token.value[:-1]
     value = token.value
-    value_len = 0
+    value_len = 0  # TODO: FOR WHAT IT?!
 
     if len(_s) == 0:
         errors_handler.final_push_segment(path, f'SyntaxError: `{quotation_type}` is never closed here', token)
@@ -35,17 +35,25 @@ def tokenize_str_next(s: str, path: str, token: Token, errors_handler: ErrorsHan
                 value += '\\' + _s[i]
                 value_len += 1
         elif _s[i] == '\\':
-            if next is not None and (
-                    next == quotation_type or ('r' not in prefix and next in '\'"rnt')
-            ):
+            # TODO: WHAT IS GOING ON HERE?!
+
+            temp = next is not None
+            if temp and (next == quotation_type or ('r' not in prefix and next in '\'"rnt')):
                 value += _s[i] + next
                 i += 1
                 value_len += 1
-            elif next is not None:
+            elif temp and next == '$':
+                # TODO: WRONG WORKS?
+
+                value += next
+                i += 1
+                value_len += 1
+            elif temp:
                 value += '\\\\' + next
                 value_len += 2
                 i += 1
             else:
+                # TODO: WHEN IT WORKS?!
                 _token = token.copy()
                 _token.start = (token.start[0], token.start[1] + i + 1 - neg_i, token.start[2] + i + 1)
                 _token.end = (token.end[0], token.end[1] + i + 1 - neg_i)

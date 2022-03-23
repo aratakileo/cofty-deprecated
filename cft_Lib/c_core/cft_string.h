@@ -6,8 +6,8 @@
 #include <fcntl.h>
 #include <io.h>
 
-typedef wchar_t _cft_char
-typedef _cft_char* _cft_str
+typedef wchar_t _cft_char;
+typedef _cft_char* _cft_str;
 
 #define _cft_ENCODING_OLD _O_TEXT
 #define _cft_ENCODING_BINARY _O_BINARY

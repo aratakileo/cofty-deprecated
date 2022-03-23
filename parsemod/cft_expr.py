@@ -8,8 +8,10 @@ from lexermod.cft_token import *
 import parsemod.cft_ops as ops
 
 
-def _is_type_expression(token: Token) -> bool:
-    if token.type == TokenTypes.NAME:
+def _is_type_expression(tokens: list[Token] | Token, i: int = 0) -> bool:
+    tokens = extract_tokens(tokens, i)
+
+    if _is_name(tokens[0]):
         return True
 
     return False

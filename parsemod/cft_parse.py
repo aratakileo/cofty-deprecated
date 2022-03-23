@@ -75,7 +75,7 @@ def generate_code_body(
     while i < len(tokens):
         token = tokens[i]
 
-        if _is_setvalue_expression(tokens, errors_handler, path, i, type_annotation=False):
+        if _is_setvalue_expression(tokens, errors_handler, path, i):
             # set variable value
             # <name> "=" <expr>
 
@@ -90,14 +90,15 @@ def generate_code_body(
             del generated['$tokens-len'], generated['$constant-expr']
 
             _has_constant_expr(main_body, False)
-        elif _is_kw(token, ('let', 'var', 'const')) and _is_setvalue_expression(tokens, errors_handler, path, i + 1):
+        elif _is_kw(token, ('let', 'val')) and _is_setvalue_expression(
+                tokens, errors_handler, path, i + 1, init_type=token.value
+        ):
             # init variable
-            # ("let" | "var" | "const") <name>(":" <typename>)? "=" <expr>
+            # ("let" | "val") <name>(":" <typename>)? "=" <expr>
 
             # what does that mean?
-            # let - visible only in current body
-            # var - visible only in current function
-            # const - constant value, visible only in current function
+            # let - visible only in current function
+            # val - constant value, visible only in current function
 
             # TODO: MAKE THAT'S MODIFICATIONS SYSTEM
 
