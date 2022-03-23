@@ -33,11 +33,15 @@ This is the main source code repository for Cofty. It contains the compiler, sta
     - [x] bool value
     - [x] value from name
     - [ ] None value
-  - [x] variables system
+  - [ ] variables system
     - [x] initialization
       - [x] without value
       - [x] automatic type specifications
     - [x] setting values
+    - [ ] modificators
+      - [x] let
+      - [x] val
+      - [ ] mut
   - [ ] base constructions
     - [x] `if`, `elif`, `else`
     - [ ] `while`
