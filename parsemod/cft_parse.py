@@ -1,10 +1,9 @@
+from parsemod.cft_others import extract_tokens, extract_tokens_with_code_body, _is_code_body
 from cft_namehandler import NameHandler, get_value_returned_type
 from lexermod.cft_token import Token, TokenTypes, DummyToken
-from parsemod.cft_extract_tokens import extract_tokens
 from parsemod.cft_syntaxtree_values import pNone
 from cft_errors_handler import ErrorsHandler
 from parsemod.cft_fn import _is_fn_init
-from parsemod.cft_is_codebody import *
 from parsemod.cft_setvalue import *
 from parsemod.cft_ops import is_op
 from parsemod.cft_kw import _is_kw
@@ -13,7 +12,7 @@ from parsemod.cft_expr import *
 
 def _is_if_or_elif(tokens: list[Token] | Token, i: int = 0):
     """"if" <expr> <code-body> ("elif" <expr> <code-body>)?"""
-    tokens = extract_tokens(tokens, i)
+    tokens = extract_tokens_with_code_body(tokens, i)
 
     if tokens is None:
         return False
@@ -30,7 +29,7 @@ def _is_if_or_elif(tokens: list[Token] | Token, i: int = 0):
 
 def _is_else(tokens: list[Token] | Token, i: int = 0):
     """("else" <code-body>)"""
-    tokens = extract_tokens(tokens, i)
+    tokens = extract_tokens_with_code_body(tokens, i)
 
     if tokens is None:
         return False
@@ -124,15 +123,20 @@ def generate_code_body(
             # if, elif statement
             # "if" | "elif" <expr> {...}
 
+            index = i + len(extract_tokens(tokens, i)) - 1
+            off = (0 if tokens[index].type == TokenTypes.CURLY_BRACES else 1)
+
             _condition = _generate_expression_syntax_object(
                 tokens,
                 errors_handler,
                 path,
                 namehandler,
                 i + 1,
-                right_i=1,
+                right_i=1 - off,
                 expected_type='bool'
             )
+
+            off *= 2
 
             if errors_handler.has_errors():
                 return {}
@@ -140,7 +144,7 @@ def generate_code_body(
             namehandler.root_init_new_localspace()
 
             _body = generate_code_body(
-                tokens[i + 1 + _condition['$tokens-len']].value,
+                tokens[index + off].value,
                 errors_handler,
                 path,
                 namehandler,
@@ -168,7 +172,7 @@ def generate_code_body(
                     'if': _value
                 })
 
-            i += _condition['$tokens-len'] + 1
+            i += _condition['$tokens-len'] + 1 + off
             del _condition['$tokens-len']
 
             _has_constant_expr(main_body, False)
@@ -180,8 +184,11 @@ def generate_code_body(
 
             namehandler.root_init_new_localspace()
 
+            index = i + 1
+            off = (1 if tokens[index].type == TokenTypes.NEWLINE else 0)
+
             current_body['value'][-1]['else-body'] = generate_code_body(
-                tokens[i + 1].value,
+                tokens[index + off].value,
                 errors_handler,
                 path,
                 namehandler,
@@ -192,7 +199,7 @@ def generate_code_body(
             if errors_handler.has_errors():
                 return {}
 
-            i += 2
+            i += 2 + off
         elif _is_fn_init(tokens, errors_handler, path, i):
             type_specification = is_op(tokens[i + 3], '->')
             returned_type = 'None' if not type_specification else tokens[i + 4].value
@@ -229,12 +236,15 @@ def generate_code_body(
 
             namehandler.def_fn_args(positional_args, len(args))
 
+            index = i + (5 if type_specification else 3)
+            off = (1 if tokens[index].type == TokenTypes.NEWLINE else 0)
+
             current_body['value'].append({
                 'type': 'fn-init',
                 'fn-name': tokens[i + 1].value,
                 'args': args,
                 'body': generate_code_body(
-                    tokens[i + (5 if type_specification else 3)].value,
+                    tokens[index + off].value,
                     errors_handler,
                     path,
                     namehandler,
@@ -250,7 +260,7 @@ def generate_code_body(
             if errors_handler.has_errors():
                 return {}
 
-            i += 6 if type_specification else 4
+            i += (6 if type_specification else 4) + off
         elif _is_kw(token, 'return'):
             if base_body_type != '$fn-body':
                 errors_handler.final_push_segment(path, 'SyntaxError: \'return\' outside function', token, fill=True)

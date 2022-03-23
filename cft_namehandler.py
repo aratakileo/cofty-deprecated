@@ -140,7 +140,7 @@ class NameHandler:
 
         if self.has_localname(name):
             if self.is_overloaded(name, True):
-                self.abs_current_obj['value'][name].append(new_obj | piece)
+                self.abs_current_obj['value'][name]['value'].append(new_obj | piece)
             else:
                 temp = self.abs_current_obj['value'][name]
 

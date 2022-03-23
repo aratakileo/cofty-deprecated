@@ -1,8 +1,7 @@
+from parsemod.cft_others import extract_tokens_with_code_body, _is_code_body
 from parsemod.cft_setvalue import _is_setvalue_expression
-from parsemod.cft_extract_tokens import extract_tokens
 from parsemod.cft_kw import _is_kw, _is_name
 from cft_errors_handler import ErrorsHandler
-from parsemod.cft_is_codebody import *
 from parsemod.cft_ops import is_op
 from lexermod.cft_token import *
 
@@ -15,7 +14,7 @@ def _is_fn_init(
 ):
     """ "fn" <fn-name> "("<arg>*")" (":" <returned-type>)? <code-body>"""
 
-    tokens = extract_tokens(tokens, i)
+    tokens = extract_tokens_with_code_body(tokens, i)
 
     if tokens is None or not _is_kw(tokens[0], 'fn'):
         return False

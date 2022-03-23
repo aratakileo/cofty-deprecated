@@ -1,5 +1,5 @@
 from cft_namehandler import NameHandler, get_value_returned_type
-from parsemod.cft_extract_tokens import extract_tokens
+from parsemod.cft_others import extract_tokens
 from cft_errors_handler import ErrorsHandler
 from compile.cft_compile import get_num_type
 from parsemod.cft_kw import _is_name, _is_kw
