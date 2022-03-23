@@ -65,56 +65,64 @@ def _is_setvalue_expression(
     return False
 
 
-def _is_setvalue_expression_old(
+def _generate_setvalue_syntax_object(
         tokens: list[Token],
         errors_handler: ErrorsHandler,
         path: str,
+        namehandler: NameHandler,
         i: int = 0,
         init_type=''
-) -> bool:
-    """<name>(":" <type>)? ("=" <expr>)?"""
+):
+    tokens = extract_tokens(tokens, i)
 
-    if i >= len(tokens) - 2:
-        if init_type and i < len(tokens) and _is_name(tokens[i]):
-            errors_handler.final_push_segment(path, 'TypeError: type annotations needed', tokens[i], fill=True)
+    # <value-name>
+    res = {
+        'type': 'set-value',
+        'value-name': tokens[0].value,
+        'value-type': None,
+        'new-value': None,
+        '$tokens-len': len(tokens),  # temp value
+        '$constant-expr': True  # temp value
+    }
 
-        return False
+    _tokens = tokens[1:]
 
-    if _is_name(tokens[i]):
-        if is_op(tokens[i + 1], ':') and _is_type_expression(tokens[i + 2]):
-            if i < len(tokens) - 4 and init_type:
-                if is_op(tokens[i + 3], '=') and _is_value_expression(tokens, i + 4):
-                    return True
+    if is_op(_tokens[0], ':'):
+        # : <value-type>
+        res['value-type'] = _tokens[1].value
 
-                errors_handler.final_push_segment(path, 'SyntaxError: invalid syntax', tokens[i + 3], fill=True)
-                return False
+        _tokens = _tokens[2:]
 
-            if init_type:
-                if len(tokens) != 3:
-                    errors_handler.final_push_segment(path, 'SyntaxError: invalid syntax', tokens[i + 3], fill=True)
-                    return False
+    if _tokens and is_op(_tokens[0], '='):
+        # = <new-value>
+        new_value = _generate_expression_syntax_object(
+            _tokens,
+            errors_handler,
+            path,
+            namehandler,
+            i=1,
+            expected_type=... if res['value-type'] is None else res['value-type']
+        )
 
-                return True
+        if res['value-type'] is None:
+            res['value-type'] = get_value_returned_type(new_value)
 
-            errors_handler.final_push_segment(
-                path,
-                'SyntaxError: type annotation is not possible for an already existing variable',
-                tokens[i + 1]
-            )
-        elif is_op(tokens[i + 1], '='):
-            if _is_value_expression(tokens, i + 2):
-                return True
-            elif tokens[i + 2].type not in (TokenTypes.NEWLINE, TokenTypes.ENDMARKER):
-                errors_handler.final_push_segment(path, 'SyntaxError: invalid syntax', tokens[i + 2], fill=True)
-                return False
+        if errors_handler.has_errors():
+            return {}
 
-    if init_type or is_op(tokens[i + 1], '='):
-        errors_handler.final_push_segment(path, 'SyntaxError: invalid syntax', tokens[i + 1], fill=True)
+        res['$constant-expr'] = new_value['$constant-expr']
 
-    return False
+        del new_value['$tokens-len'], new_value['$constant-expr']
+
+        res['new-value'] = new_value
+
+    if not namehandler.set_name(tokens[0].value, res['value-type'], res['new-value'], mut=True):
+        errors_handler.final_push_segment(path, '<Set name value error>', tokens[0])
+
+    return res
 
 
-def _generate_setvalue_syntax_object(
+def _generate_setvalue_syntax_object_old(
         tokens: list[Token],
         errors_handler: ErrorsHandler,
         path: str,

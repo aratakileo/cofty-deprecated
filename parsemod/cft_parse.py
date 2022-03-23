@@ -102,7 +102,14 @@ def generate_code_body(
 
             # TODO: MAKE THAT'S MODIFICATIONS SYSTEM
 
-            generated = _generate_setvalue_syntax_object(tokens, errors_handler, path, namehandler, i + 1)
+            generated = _generate_setvalue_syntax_object(
+                tokens,
+                errors_handler,
+                path,
+                namehandler,
+                i + 1,
+                init_type=token.value
+            )
 
             if errors_handler.has_errors():
                 return {}
