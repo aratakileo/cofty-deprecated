@@ -1,8 +1,8 @@
 from cft_namehandler import NameHandler, get_value_returned_type
-from lexermod.cft_token import Token, TokenTypes
 from parsemod.cft_others import extract_tokens
 from cft_errors_handler import ErrorsHandler
 from parsemod.cft_kw import _is_name
+from lexermod.cft_token import Token
 from parsemod.cft_ops import is_op
 from parsemod.cft_expr import *
 
@@ -74,22 +74,27 @@ def _generate_setvalue_syntax_object(
         init_type=''
 ):
     tokens = extract_tokens(tokens, i)
+    name = tokens[0].value
+    new_value = None
+    value_type = None
 
     # <value-name>
     res = {
         'type': 'set-value',
-        'value-name': tokens[0].value,
-        'value-type': None,
-        'new-value': None,
         '$tokens-len': len(tokens),  # temp value
         '$constant-expr': True  # temp value
+    }
+
+    namehandler_res = {
+        'const': init_type == 'val',
+        'mut': True
     }
 
     _tokens = tokens[1:]
 
     if is_op(_tokens[0], ':'):
         # : <value-type>
-        res['value-type'] = _tokens[1].value
+        value_type = _tokens[1].value
 
         _tokens = _tokens[2:]
 
@@ -101,11 +106,11 @@ def _generate_setvalue_syntax_object(
             path,
             namehandler,
             i=1,
-            expected_type=... if res['value-type'] is None else res['value-type']
+            expected_type=... if value_type is None else value_type
         )
 
-        if res['value-type'] is None:
-            res['value-type'] = get_value_returned_type(new_value)
+        if value_type is None:
+            value_type = get_value_returned_type(new_value)
 
         if errors_handler.has_errors():
             return {}
@@ -114,83 +119,48 @@ def _generate_setvalue_syntax_object(
 
         del new_value['$tokens-len'], new_value['$constant-expr']
 
-        res['new-value'] = new_value
+    res.update({
+        'value-name': name,
+        'value-type': value_type,
+        'new-value': new_value
+    })
 
-    if not namehandler.set_name(tokens[0].value, res['value-type'], res['new-value'], mut=True):
-        errors_handler.final_push_segment(path, '<Set name value error>', tokens[0])
+    namehandler_res.update({
+        'type': value_type,
+        'value': new_value
+    })
 
-    return res
+    if namehandler.has_localname(name):
+        name_obj = namehandler.abs_current_obj['value'][name]
 
-
-def _generate_setvalue_syntax_object_old(
-        tokens: list[Token],
-        errors_handler: ErrorsHandler,
-        path: str,
-        namehandler: NameHandler,
-        i: int = 0
-):
-    res = {
-        'type': 'set-value',
-        'value-name': tokens[i].value,
-        'value-type': None,
-        'new-value': None,
-        '$tokens-len': 2,  # temp value
-        '$constant-expr': True  # temp value
-    }
-
-    if tokens[i + 1].value == '=':
-        # <value-name> = <new-value>
-        _new_value = _generate_expression_syntax_object(
-            tokens,
-            errors_handler,
-            path,
-            namehandler,
-            i + 2
-        )
-
-        if errors_handler.has_errors(): return {'$tokens-len': res['$tokens-len']}
-
-        res['$tokens-len'] += _new_value['$tokens-len']
-        res['$constant-expr'] = _new_value['$constant-expr']
-
-        del _new_value['$tokens-len'], _new_value['$constant-expr']
-
-        res['new-value'] = _new_value
-    else:
-        # <value-name>: <value-type>
-        res['value-type'] = tokens[i + 2].value
-        res['$tokens-len'] += 1
-
-        if i < len(tokens) - 4 and is_op(tokens[i + 3], '='):
-            # <value-name>: <value-type> = <new-value>
-            _new_value = _generate_expression_syntax_object(
-                tokens,
-                errors_handler,
+        if name_obj['const'] or name_obj['value'] is not None and not name_obj['mut']:
+            errors_handler.final_push_segment(
                 path,
-                namehandler,
-                i + 4,
-                expected_type=res['value-type']
+                f'TypeError: cannot assign twice to {"constant" if name_obj["const"] else "immutable"} variable',
+                tokens[0],
+                fill=True
             )
+            return {}
 
-            if errors_handler.has_errors(): return {'$tokens-len': res['$tokens-len']}
+        if name_obj['const'] != namehandler_res['const']:
+            errors_handler.final_push_segment(
+                path,
+                f'TypeError: `{name}` is interpreted as a constant, not a new binding',
+                tokens[0],
+                fill=True
+            )
+            return {}
 
-            res['$tokens-len'] += _new_value['$tokens-len']
-            res['$constant-expr'] = _new_value['$constant-expr']
+        if name_obj['type'] != '$undefined' and name_obj['type'] != value_type and not init_type:
+            errors_handler.final_push_segment(
+                path,
+                f'TypeError: expected type `{name_obj["type"]}`, got `{value_type}`',
+                _tokens[1],
+                fill=True
+            )
+            return {}
 
-            del _new_value['$tokens-len'], _new_value['$constant-expr']
-
-            res['new-value'] = _new_value
-
-    if res['value-type'] is None and res['new-value'] is not None:
-        res['value-type'] = get_value_returned_type(res['new-value'])
-
-    _type = res['value-type']
-
-    if res['new-value'] is not None:
-        _type = get_value_returned_type(res['new-value'])
-
-    if not namehandler.set_name(tokens[i].value, _type, res['new-value'], mut=True):
-        errors_handler.final_push_segment(path, '<Set name value error>', tokens[i])
+    namehandler.force_set_name(name, **namehandler_res)
 
     return res
 

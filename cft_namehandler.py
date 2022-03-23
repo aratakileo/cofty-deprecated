@@ -24,6 +24,8 @@ class NameHandler:
 
         self.current_obj = self._core_namespace['$main']
         self._accessible_names = {}
+        self._used_compile_names = set()
+        self._compile_names_prefix = ''
 
         cft_builtins.define(self)
 
@@ -67,7 +69,24 @@ class NameHandler:
 
         return self._accessible_names[name]
 
-    def root_force_set_name(self, name: str, **attrs):
+    def get_compile_name(self, name: str):
+        prefix = self._compile_names_prefix + '_'
+
+        if prefix == '_':
+            prefix = ''
+
+        compile_name = f'_cft_{prefix}{name}'
+
+        i = 0
+        while compile_name in self._used_compile_names:
+            compile_name = f'_cft_{prefix}{name}{i}'
+            i += 1
+
+        self._used_compile_names.add(compile_name)
+
+        return compile_name
+
+    def force_set_name(self, name: str, **attrs):
         if isinstance(attrs['value'], list):
             for val in attrs['value']:
                 val.update({
@@ -80,12 +99,15 @@ class NameHandler:
                 '*parent': self.current_obj
             })
 
+            if not self.has_localname(name) and 'compile-name' not in attrs:
+                attrs['compile-name'] = self.get_compile_name(name)
+
         if name not in self.abs_current_obj['value']:
             self.abs_current_obj['value'][name] = {}
 
         self.abs_current_obj['value'][name].update(attrs)
 
-        if name in self._accessible_names:
+        if self.has_globalname(name):
             temp = [self.abs_current_obj['value'][name]]
 
             if isinstance(self.abs_current_obj['value'][name]['value'], list):
@@ -103,57 +125,35 @@ class NameHandler:
 
         self._accessible_names[name] = self.abs_current_obj['value'][name]
 
-    def set_name(self, name: str, _type: str, value: dict, **attrs):
-        if _type is not None and value is not None and (
-            get_value_returned_type(value) != _type and get_value_returned_type(value) != '$undefined'
-        ) and (
-            self.has_globalname(name) and self._accessible_names[name]['type'] != get_value_returned_type(value)
-        ):
-            return False
-
-        self.root_force_set_name(name, type=_type, value=value, **attrs)
-
-        return True
-
-    def init_fn(self, name: str, returned_type: str):
-        if self.has_globalname(name) and not self.isinstance(name, 'fn'):
-            return False
-
-        self.root_force_set_name(name, type='fn', value={}, **{'returned-type': returned_type})
-        self.root_use_localspace(name)
-
-        return True
-
-    def def_fn_args(self, positional_args: int, max_args: int):
-        self.abs_current_obj.update({
-            'args': {},
-            'positional-args': positional_args,
-            'max-args': max_args
-        })
-
-        for name in self.abs_current_obj['value']:
-            self.abs_current_obj['args'][name] = self.abs_current_obj['value'][name]
-
-    def root_overload_name(self, name: str, _type: str, value: dict, **attrs):
-        new_obj = {'type': _type, 'value': value, **attrs}
-        piece = {'name': name, '*parent': self.current_obj}
+    def overload_name(self, name: str, _type: str, value: dict, **attrs):
+        new_obj = {
+            'type': _type,
+            'value': value,
+            'name': name,
+            'compile-name': self.get_compile_name(name),
+            '*parent': self.current_obj,
+            **attrs
+        }
 
         if self.has_localname(name):
             if self.is_overloaded(name, True):
-                self.abs_current_obj['value'][name]['value'].append(new_obj | piece)
+                self.abs_current_obj['value'][name]['value'].append(new_obj)
             else:
                 temp = self.abs_current_obj['value'][name]
 
                 del self.abs_current_obj['value'][name]
 
-                self.root_force_set_name(name, type=NAME_HANDLER_TYPES[2], value=[temp, new_obj])
+                self.force_set_name(name, type=NAME_HANDLER_TYPES[2], value=[temp, new_obj])
 
             return
 
-        self.root_force_set_name(**(new_obj | piece))
+        self.force_set_name(**new_obj)
 
-    def root_use_localspace(self, name: str):
+    def use_localspace(self, name: str):
         self.current_obj = self.get_current_body(name)
+
+        if not name.startswith('$'):
+            self._compile_names_prefix += ('_' if self._compile_names_prefix else '') + name
 
         for name in self.abs_current_obj['value']:
             obj = self.abs_current_obj['value'][name]
@@ -171,12 +171,12 @@ class NameHandler:
             else:
                 self._accessible_names[name] = obj
 
-    def root_init_new_localspace(self):
-        self.root_overload_name(NAME_HANDLER_TYPES[1], NAME_HANDLER_TYPES[1], {})
+    def init_new_localspace(self):
+        self.overload_name(NAME_HANDLER_TYPES[1], NAME_HANDLER_TYPES[1], {})
 
-        self.root_use_localspace(NAME_HANDLER_TYPES[1])
+        self.use_localspace(NAME_HANDLER_TYPES[1])
 
-    def root_leave_current_localspace(self):
+    def leave_current_localspace(self):
         for name in self.abs_current_obj['value']:
             if self.is_overloaded(name):
                 if self.is_overloaded(name, True):
@@ -186,6 +186,12 @@ class NameHandler:
                     self._accessible_names[name]['value'].remove(self.abs_current_obj['value'][name])
             else:
                 del self._accessible_names[name]
+
+        name = self.abs_current_obj['name']
+        if not name.startswith('$'):
+            self._compile_names_prefix = self._compile_names_prefix[
+                                         :-len(name) + (1 if self._compile_names_prefix == name else 0)
+                                         ]
         self.current_obj = self.abs_current_obj['*parent']
 
     # DO NOT USE THIS METHODS
@@ -237,8 +243,8 @@ if __name__ == '__main__':
     namehandler = NameHandler()
     namehandler.set_name('test', '$test', {'returned-type': '$test'})
     print(namehandler.to_json())
-    namehandler.root_init_new_localspace()
+    namehandler.init_new_localspace()
     namehandler.set_name('t', '$t', {'returned-type': '$t'})
     print(namehandler.to_json())
-    namehandler.root_leave_current_localspace()
+    namehandler.leave_current_localspace()
     print(namehandler.to_json())

@@ -149,7 +149,7 @@ def generate_code_body(
             if errors_handler.has_errors():
                 return {}
 
-            namehandler.root_init_new_localspace()
+            namehandler.init_new_localspace()
 
             _body = generate_code_body(
                 tokens[index + off].value,
@@ -190,7 +190,7 @@ def generate_code_body(
                 errors_handler.final_push_segment(path, 'SyntaxError: invalid syntax', token, fill=True)
                 return {}
 
-            namehandler.root_init_new_localspace()
+            namehandler.init_new_localspace()
 
             index = i + 1
             off = (1 if tokens[index].type == TokenTypes.NEWLINE else 0)
@@ -212,10 +212,20 @@ def generate_code_body(
             type_specification = is_op(tokens[i + 3], '->')
             returned_type = 'None' if not type_specification else tokens[i + 4].value
             positional_args = 0
+            name = tokens[i + 1].value
 
-            if not namehandler.init_fn(tokens[i + 1].value, returned_type):
-                errors_handler.final_push_segment(path, f'<Init function `{tokens[i + 1].value}` error>', tokens[i])
+            if namehandler.has_globalname(name):
+                errors_handler.final_push_segment(
+                    path,
+                    f'You cannot to overload name `{name}`',
+                    tokens[i + 1],
+                    fill=True
+                )
                 return {}
+
+            namehandler.force_set_name(name, type='fn', value={}, **{'returned-type': returned_type})
+            namehandler.use_localspace(name)
+            namehandler.abs_current_obj['args'] = {}
 
             args = []
             args_tokens = tokens[i + 2].value
@@ -230,7 +240,13 @@ def generate_code_body(
                     if not arg_tokens:
                         break
 
-                    arg = _generate_setvalue_syntax_object(arg_tokens, errors_handler, path, namehandler)
+                    arg = _generate_setvalue_syntax_object(
+                        arg_tokens,
+                        errors_handler,
+                        path,
+                        namehandler,
+                        init_type='let'
+                    )
 
                     if errors_handler.has_errors():
                         return {}
@@ -240,9 +256,16 @@ def generate_code_body(
 
                     args.append(arg)
 
-                    del arg['$tokens-len']
+                    del arg['$tokens-len'], arg['$constant-expr']
 
-            namehandler.def_fn_args(positional_args, len(args))
+                    args_name = arg['value-name']
+
+                    namehandler.abs_current_obj['args'][args_name] = namehandler.abs_current_obj['value'][args_name]
+
+            namehandler.abs_current_obj.update({
+                'positional-args': positional_args,
+                'max-args': len(args)
+            })
 
             index = i + (5 if type_specification else 3)
             off = (1 if tokens[index].type == TokenTypes.NEWLINE else 0)
@@ -367,7 +390,7 @@ def generate_code_body(
         del main_body['$return-is-used']
 
     if body_type != '$main-body':
-        namehandler.root_leave_current_localspace()
+        namehandler.leave_current_localspace()
 
     return main_body
 
