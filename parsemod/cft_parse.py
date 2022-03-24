@@ -217,7 +217,7 @@ def generate_code_body(
             if namehandler.has_globalname(name):
                 errors_handler.final_push_segment(
                     path,
-                    f'You cannot to overload name `{name}`',
+                    f'NameType: name `{name}` is defined already',
                     tokens[i + 1],
                     fill=True
                 )
