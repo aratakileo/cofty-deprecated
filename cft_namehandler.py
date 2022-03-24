@@ -26,6 +26,7 @@ class NameHandler:
         self._accessible_names = {}
         self._used_compile_names = set()
         self._compile_names_prefix = ''
+        self._obj_attributes_preset = {}
 
         cft_builtins.define(self)
 
@@ -86,6 +87,13 @@ class NameHandler:
 
         return compile_name
 
+    def adjust_attrs(self, obj: dict):
+        obj.update(self._obj_attributes_preset)
+        self._obj_attributes_preset = {}
+
+        if 'compile-name' not in obj:
+            obj['compile-name'] = self.get_compile_name(obj['name'])
+
     def force_set_name(self, name: str, **attrs):
         if isinstance(attrs['value'], list):
             for val in attrs['value']:
@@ -99,8 +107,8 @@ class NameHandler:
                 '*parent': self.current_obj
             })
 
-            if not self.has_localname(name) and 'compile-name' not in attrs:
-                attrs['compile-name'] = self.get_compile_name(name)
+            if not self.has_localname(name):
+                self.adjust_attrs(attrs)
 
         if name not in self.abs_current_obj['value']:
             self.abs_current_obj['value'][name] = {}
@@ -130,10 +138,11 @@ class NameHandler:
             'type': _type,
             'value': value,
             'name': name,
-            'compile-name': self.get_compile_name(name),
             '*parent': self.current_obj,
             **attrs
         }
+
+        self.adjust_attrs(new_obj)
 
         if self.has_localname(name):
             if self.is_overloaded(name, True):

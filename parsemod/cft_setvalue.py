@@ -1,7 +1,7 @@
 from cft_namehandler import NameHandler, get_value_returned_type
 from parsemod.cft_others import extract_tokens
 from cft_errors_handler import ErrorsHandler
-from parsemod.cft_kw import _is_name
+from parsemod.cft_kw import _is_name, _is_kw
 from lexermod.cft_token import Token
 from parsemod.cft_ops import is_op
 from parsemod.cft_expr import *
@@ -16,7 +16,25 @@ def _is_setvalue_expression(
 ) -> bool:
     tokens = extract_tokens(tokens, i)
 
-    if tokens is not None and len(tokens) >= 3 and _is_name(tokens[0]):
+    if tokens is None:
+        return False
+
+    if _is_kw(tokens[0], 'mut'):
+        if len(tokens) < 4:
+            errors_handler.final_push_segment(path, 'SyntaxError: invalid syntax', tokens[-1], fill=True)
+            return False
+
+        if not init_type:
+            errors_handler.final_push_segment(path, 'SyntaxError: invalid syntax', tokens[0], fill=True)
+            return False
+
+        if init_type == 'val':
+            errors_handler.final_push_segment(path, 'TypeError: constant value cannot be mutable', tokens[0], fill=True)
+            return False
+
+        tokens = tokens[1:]
+
+    if len(tokens) >= 3 and _is_name(tokens[0]):
         if is_op(tokens[1], '='):
             # <value-name> = <new-value>
             if _is_value_expression(tokens, 2):
@@ -73,8 +91,12 @@ def _generate_setvalue_syntax_object(
         i: int = 0,
         init_type=''
 ):
-    tokens = extract_tokens(tokens, i)
-    name = tokens[0].value
+    _tokens = tokens = extract_tokens(tokens, i)
+
+    if _is_kw(_tokens[0], 'mut'):
+        _tokens = _tokens[1:]
+
+    name = _tokens[0].value
     new_value = None
     value_type = None
 
@@ -86,11 +108,10 @@ def _generate_setvalue_syntax_object(
     }
 
     namehandler_res = {
-        'const': init_type == 'val',
-        'mut': True
+        'const': init_type == 'val'
     }
 
-    _tokens = tokens[1:]
+    _tokens = _tokens[1:]  # remove name-token
 
     if is_op(_tokens[0], ':'):
         # : <value-type>
@@ -159,6 +180,9 @@ def _generate_setvalue_syntax_object(
                 fill=True
             )
             return {}
+
+    if init_type:
+        namehandler_res['mut'] = _is_kw(tokens[0], 'mut')
 
     namehandler.force_set_name(name, **namehandler_res)
 
