@@ -54,6 +54,11 @@ This is the main source code repository for Cofty. It contains the compiler, sta
     - [x] without arguments
     - [x] with arguments
   - [ ] supports single line code body
+  - [x] types
+    - [ ] structures
+      - [x] prototype initialization
+      - [ ] self initialization
+    - [ ] classes
 
 ### Installing
 At first, you need
