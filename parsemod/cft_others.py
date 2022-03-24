@@ -52,8 +52,21 @@ def extract_tokens_with_code_body(tokens: list[Token] | Token, i: int = 0):
     return extracted_tokens
 
 
+def remove_newline_by_borders(tokens: list[Token]):
+    tokens = tokens.copy()
+
+    if tokens and tokens[0].type == TokenTypes.NEWLINE:
+        del tokens[0]
+
+    if tokens and tokens[-1].type == TokenTypes.NEWLINE:
+        del tokens[-1]
+
+    return tokens
+
+
 __all__ = (
     'extract_tokens',
     'extract_tokens_with_code_body',
+    'remove_newline_by_borders',
     '_is_code_body'
 )

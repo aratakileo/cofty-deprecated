@@ -1,7 +1,8 @@
-from parsemod.cft_others import extract_tokens, extract_tokens_with_code_body, _is_code_body
+from parsemod.cft_others import extract_tokens, extract_tokens_with_code_body, _is_code_body, remove_newline_by_borders
 from cft_namehandler import NameHandler, get_value_returned_type
 from lexermod.cft_token import Token, TokenTypes, DummyToken
 from parsemod.cft_syntaxtree_values import pNone
+from parsemod.cft_struct import _is_struct_init
 from cft_errors_handler import ErrorsHandler
 from parsemod.cft_fn import _is_fn_init
 from parsemod.cft_setvalue import *
@@ -217,7 +218,7 @@ def generate_code_body(
             if namehandler.has_globalname(name):
                 errors_handler.final_push_segment(
                     path,
-                    f'NameType: name `{name}` is defined already',
+                    f'NameError: name `{name}` is already defined',
                     tokens[i + 1],
                     fill=True
                 )
@@ -335,6 +336,55 @@ def generate_code_body(
                 del returned_value['$tokens-len']
 
             i += 1
+        elif _is_struct_init(tokens, errors_handler, path, i):
+            name = tokens[i + 1].value
+            off = (0 if tokens[i + 2].type == TokenTypes.CURLY_BRACES else 1)
+            body_token = tokens[i + 2 + off]
+
+            if namehandler.has_globalname(name):
+                errors_handler.final_push_segment(
+                    path,
+                    f'NameError: name `{name}` is already defined',
+                    tokens[i + 1],
+                    fill=True
+                )
+                return {}
+
+            namehandler.force_set_name(name, type='struct', value={})
+
+            if body_token.value:
+                namehandler.use_localspace(name)
+
+                segments_tokens = body_token.value
+                segments_tokens = [segments_tokens] if segments_tokens[0].type != TokenTypes.TUPLE \
+                    else segments_tokens[0].value
+
+                for segment_tokens in segments_tokens:
+                    segment_tokens = remove_newline_by_borders(segment_tokens)
+
+                    if not segment_tokens:
+                        break
+
+                    segment_name = segment_tokens[0].value
+
+                    if namehandler.has_localname(segment_name):
+                        errors_handler.final_push_segment(
+                            path,
+                            f'NameError: field `{segment_name}` is already declared',
+                            segment_tokens[0],
+                            fill=True
+                        )
+                        return {}
+
+                    namehandler.force_set_name(
+                        segment_name,
+                        type=segment_tokens[2].value,
+                        value=None
+                    )
+
+                namehandler.leave_current_localspace()
+
+            i += 3 + off
         elif _is_value_expression(tokens, i):
             generated = _generate_expression_syntax_object(
                 tokens,

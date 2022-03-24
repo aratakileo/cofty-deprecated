@@ -8,7 +8,7 @@ def get_value_returned_type(obj: dict):
     return obj['returned-type'] if obj['returned-type'] != '$self' else obj['type']
 
 
-NAME_HANDLER_TYPES = ['$mod', '$local-space', '$handler', 'fn']
+NAME_HANDLER_TYPES = ['$mod', '$local-space', '$handler', 'fn', 'struct']
 
 
 class NameHandler:
@@ -199,7 +199,7 @@ class NameHandler:
         name = self.abs_current_obj['name']
         if not name.startswith('$'):
             self._compile_names_prefix = self._compile_names_prefix[
-                                         :-len(name) + (1 if self._compile_names_prefix == name else 0)
+                                         :-len(name) - (self._compile_names_prefix != name)
                                          ]
         self.current_obj = self.abs_current_obj['*parent']
 
