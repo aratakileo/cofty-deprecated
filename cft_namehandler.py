@@ -8,7 +8,7 @@ def get_value_returned_type(obj: dict):
     return obj['returned-type'] if obj['returned-type'] != '$self' else obj['type']
 
 
-NAME_HANDLER_TYPES = ['$mod', '$local-space', '$handler', 'fn', 'struct']
+NAME_HANDLER_TYPES = ['$mod', '$local-space', '$handler', 'fn', '$struct']
 
 
 class NameHandler:

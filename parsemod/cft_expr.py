@@ -20,7 +20,7 @@ def _is_type_expression(
     if _is_name(tokens[0]):
         name = tokens[0].value
         if namehandler.has_globalname(name):
-            if namehandler.isinstance(name, 'struct'):
+            if namehandler.isinstance(name, '$struct'):
                 return True
 
             errors_handler.final_push_segment(
@@ -137,7 +137,7 @@ def _generate_name_call_expression(
 
     namehandler_obj = namehandler.get_current_body(name).copy()
 
-    if namehandler_obj['type'] == 'struct':
+    if namehandler_obj['type'] == '$struct':
         args_dict = namehandler_obj['value']
         expected_kwargs = list(args_dict.keys())
         max_args = positional_args = len(expected_kwargs)

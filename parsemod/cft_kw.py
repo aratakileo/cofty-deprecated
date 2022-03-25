@@ -3,7 +3,7 @@ from parsemod.cft_ops import ALL_OPS
 
 
 # that names can not be used like a variable's, a function's name etc.
-KEYWORDS = ['if', 'else', 'elif', 'let', 'val', 'True', 'False', 'fn', 'return', 'None', 'mut', 'struct']
+KEYWORDS = ['if', 'else', 'elif', 'let', 'val', 'True', 'False', 'fn', 'return', 'None', 'mut', 'struct', 'mod']
 
 
 def _is_kw(

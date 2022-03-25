@@ -4,10 +4,10 @@ from lexermod.cft_token import Token, TokenTypes, DummyToken
 from parsemod.cft_syntaxtree_values import pNone
 from parsemod.cft_struct import _is_struct_init
 from cft_errors_handler import ErrorsHandler
+from parsemod.cft_kw import _is_kw, _is_name
 from parsemod.cft_fn import _is_fn_init
 from parsemod.cft_setvalue import *
 from parsemod.cft_ops import is_op
-from parsemod.cft_kw import _is_kw
 from parsemod.cft_expr import *
 
 
@@ -40,6 +40,23 @@ def _is_else(tokens: list[Token] | Token, i: int = 0):
 
     if tokens[0] == DummyToken(TokenTypes.NAME, 'else') and _is_code_body(tokens, 1):
         return True
+
+    return False
+
+
+def _is_mod(
+        tokens: list[Token] | Token,
+        errors_handler: ErrorsHandler,
+        path: str,
+        i: int = 0
+):
+    tokens = extract_tokens_with_code_body(tokens, i)
+
+    if tokens is not None and _is_kw(tokens[0], 'mod'):
+        if len(tokens) == 3 and _is_name(tokens[1]) and _is_code_body(tokens, 2):
+            return True
+
+        errors_handler.final_push_segment(path, 'SyntaxError: invalid syntax', tokens[-1], fill=True)
 
     return False
 
@@ -133,7 +150,7 @@ def generate_code_body(
             # "if" | "elif" <expr> {...}
 
             index = i + len(extract_tokens(tokens, i)) - 1
-            off = (0 if tokens[index].type == TokenTypes.CURLY_BRACES else 1)
+            off = tokens[index].type != TokenTypes.CURLY_BRACES
 
             _condition = _generate_expression_syntax_object(
                 tokens,
@@ -194,7 +211,7 @@ def generate_code_body(
             namehandler.init_new_localspace()
 
             index = i + 1
-            off = (1 if tokens[index].type == TokenTypes.NEWLINE else 0)
+            off = tokens[index].type == TokenTypes.NEWLINE
 
             current_body['value'][-1]['else-body'] = generate_code_body(
                 tokens[index + off].value,
@@ -269,23 +286,28 @@ def generate_code_body(
             })
 
             index = i + (5 if type_specification else 3)
-            off = (1 if tokens[index].type == TokenTypes.NEWLINE else 0)
+            off = tokens[index].type == TokenTypes.NEWLINE
+
+            body = generate_code_body(
+                tokens[index + off].value,
+                errors_handler,
+                path,
+                namehandler,
+                body_type='$fn-body',
+                base_body_type='$fn-body',
+                advanced_options={
+                    '$return-is-used': False  # temp value
+                }
+            )
+
+            if errors_handler.has_errors():
+                return {}
 
             current_body['value'].append({
                 'type': 'fn-init',
-                'fn-name': tokens[i + 1].value,
+                'fn-name': name,
                 'args': args,
-                'body': generate_code_body(
-                    tokens[index + off].value,
-                    errors_handler,
-                    path,
-                    namehandler,
-                    body_type='$fn-body',
-                    base_body_type='$fn-body',
-                    advanced_options={
-                        '$return-is-used': False  # temp value
-                    }
-                ),
+                'body': body,
                 'returned-type': returned_type
             })
 
@@ -338,7 +360,7 @@ def generate_code_body(
             i += 1
         elif _is_struct_init(tokens, errors_handler, path, namehandler, i):
             name = tokens[i + 1].value
-            off = (0 if tokens[i + 2].type == TokenTypes.CURLY_BRACES else 1)
+            off = tokens[i + 2].type != TokenTypes.CURLY_BRACES
             body_token = tokens[i + 2 + off]
 
             if namehandler.has_globalname(name):
@@ -350,7 +372,7 @@ def generate_code_body(
                 )
                 return {}
 
-            namehandler.force_set_name(name, type='struct', value={})
+            namehandler.force_set_name(name, type='$struct', value={})
 
             if body_token.value:
                 namehandler.use_localspace(name)
@@ -383,6 +405,43 @@ def generate_code_body(
                     )
 
                 namehandler.leave_current_localspace()
+
+            i += 3 + off
+        elif _is_mod(tokens, errors_handler, path, i):
+            name = tokens[i + 1].value
+
+            if namehandler.has_globalname(name):
+                errors_handler.final_push_segment(
+                    path,
+                    f'NameError: name `{name}` is already defined',
+                    tokens[i + 1],
+                    fill=True
+                )
+                return {}
+
+            namehandler.force_set_name(name, type='$mod', value={})
+            namehandler.use_localspace(name)
+
+            off = tokens[i + 2].type == TokenTypes.NEWLINE
+
+            body = generate_code_body(
+                tokens[i + off + 2].value,
+                errors_handler,
+                path,
+                namehandler,
+                '$mod-body',
+                base_body_type='$mod-body',
+                advanced_options=MAIN_BODY_ADVANCED_OPTIONS
+            )
+
+            if errors_handler.has_errors():
+                return {}
+
+            current_body['value'].append({
+                'type': 'mod',
+                'mod-name': name,
+                'body': body
+            })
 
             i += 3 + off
         elif _is_value_expression(tokens, i):
