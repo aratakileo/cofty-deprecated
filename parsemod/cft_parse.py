@@ -1,17 +1,23 @@
 from parsemod.cft_others import extract_tokens, extract_tokens_with_code_body, _is_code_body, remove_newline_by_borders
 from cft_namehandler import NameHandler, get_value_returned_type
 from lexermod.cft_token import Token, TokenTypes, DummyToken
+from parsemod.cft_kw import _is_kw, _is_name, _is_base_name
 from parsemod.cft_syntaxtree_values import pNone
 from parsemod.cft_struct import _is_struct_init
 from cft_errors_handler import ErrorsHandler
-from parsemod.cft_kw import _is_kw, _is_name
 from parsemod.cft_fn import _is_fn_init
 from parsemod.cft_setvalue import *
 from parsemod.cft_ops import is_op
 from parsemod.cft_expr import *
 
 
-def _is_if_or_elif(tokens: list[Token] | Token, i: int = 0):
+def _is_if_or_elif(
+        tokens: list[Token] | Token,
+        errors_handler: ErrorsHandler,
+        path: str,
+        namehandler: NameHandler,
+        i: int = 0,
+):
     """"if" <expr> <code-body> ("elif" <expr> <code-body>)?"""
     tokens = extract_tokens_with_code_body(tokens, i)
 
@@ -21,8 +27,13 @@ def _is_if_or_elif(tokens: list[Token] | Token, i: int = 0):
     if len(tokens) < 3:
         return False
 
-    if tokens[0].type == TokenTypes.NAME and tokens[0].value in ('if', 'elif') and _is_value_expression(tokens[:-1], 1) \
-            and _is_code_body(tokens[-1]):
+    if tokens[0].type == TokenTypes.NAME and tokens[0].value in ('if', 'elif') and _is_value_expression(
+            tokens[:-1],
+            errors_handler,
+            path,
+            namehandler,
+            1
+    ) and _is_code_body(tokens[-1]):
         return True
 
     return False
@@ -48,12 +59,13 @@ def _is_mod(
         tokens: list[Token] | Token,
         errors_handler: ErrorsHandler,
         path: str,
+        namehandler: NameHandler,
         i: int = 0
 ):
     tokens = extract_tokens_with_code_body(tokens, i)
 
     if tokens is not None and _is_kw(tokens[0], 'mod'):
-        if len(tokens) == 3 and _is_name(tokens[1]) and _is_code_body(tokens, 2):
+        if len(tokens) == 3 and _is_base_name(tokens[1]) and _is_code_body(tokens, 2):
             return True
 
         errors_handler.final_push_segment(path, 'SyntaxError: invalid syntax', tokens[-1], fill=True)
@@ -145,7 +157,7 @@ def generate_code_body(
             _has_constant_expr(main_body, generated['$constant-expr'])
 
             del generated['$tokens-len'], generated['$constant-expr']
-        elif _is_if_or_elif(tokens, i):
+        elif _is_if_or_elif(tokens, errors_handler, path, namehandler, i):
             # if, elif statement
             # "if" | "elif" <expr> {...}
 
@@ -321,8 +333,13 @@ def generate_code_body(
                 return {}
 
             returned_value = pNone \
-                if extract_tokens(tokens, i + 1) is None or not _is_value_expression(tokens, i + 1) \
-                else _generate_expression_syntax_object(
+                if extract_tokens(tokens, i + 1) is None or not _is_value_expression(
+                    tokens,
+                    errors_handler,
+                    path,
+                    namehandler,
+                    i + 1
+                ) else _generate_expression_syntax_object(
                     tokens,
                     errors_handler,
                     path,
@@ -407,7 +424,7 @@ def generate_code_body(
                 namehandler.leave_current_localspace()
 
             i += 3 + off
-        elif _is_mod(tokens, errors_handler, path, i):
+        elif _is_mod(tokens, errors_handler, path, namehandler, i):
             name = tokens[i + 1].value
 
             if namehandler.has_globalname(name):
@@ -444,7 +461,7 @@ def generate_code_body(
             })
 
             i += 3 + off
-        elif _is_value_expression(tokens, i):
+        elif _is_value_expression(tokens, errors_handler, path, namehandler, i):
             generated = _generate_expression_syntax_object(
                 tokens,
                 errors_handler,

@@ -23,10 +23,17 @@ def _is_fn_init(
 
     type_annotation = len(tokens) != 4
 
-    if len(tokens) not in (4, 6) or not _is_name(tokens[1]) or tokens[2].type != TokenTypes.PARENTHESIS or not (
+    if len(tokens) not in (4, 6) or not _is_name(
+            tokens[1], errors_handler, path, namehandler
+    ) or tokens[2].type != TokenTypes.PARENTHESIS or not (
             type_annotation or _is_code_body(tokens[3])
     ) or (
-            type_annotation and not (is_op(tokens[3], '->') and _is_name(tokens[4]) and _is_code_body(tokens[5]))
+            type_annotation and not (is_op(tokens[3], '->') and _is_name(
+                tokens[4],
+                errors_handler,
+                path,
+                namehandler
+            ) and _is_code_body(tokens[5]))
     ):
         errors_handler.final_push_segment(
             path,

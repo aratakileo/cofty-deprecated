@@ -17,7 +17,7 @@ def _is_type_expression(
 ) -> bool:
     tokens = extract_tokens(tokens, i)
 
-    if _is_name(tokens[0]):
+    if _is_name(tokens[0], errors_handler, path, namehandler):
         name = tokens[0].value
         if namehandler.has_globalname(name):
             if namehandler.isinstance(name, '$struct'):
@@ -48,17 +48,34 @@ def _is_type_expression(
     return False
 
 
-def _is_name_call_expression(tokens: list[Token] | Token, i: int = 0, without_tail=False):
+def _is_name_call_expression(
+        tokens: list[Token] | Token,
+        errors_handler: ErrorsHandler,
+        path: str,
+        namehandler: NameHandler,
+        i: int = 0,
+        without_tail=False
+):
     tokens = tokens[i:]
 
-    if len(tokens) < 2 or (without_tail and len(tokens) != 2) or not _is_name(tokens[0]) \
-            or tokens[1].type != TokenTypes.PARENTHESIS:
+    if len(tokens) < 2 or (without_tail and len(tokens) != 2) or not _is_name(
+            tokens[0],
+            errors_handler,
+            path,
+            namehandler
+    ) or tokens[1].type != TokenTypes.PARENTHESIS:
         return False
 
     return True
 
 
-def _is_value_expression(tokens: list[Token] | Token, i: int = 0) -> bool:
+def _is_value_expression(
+        tokens: list[Token] | Token,
+        errors_handler: ErrorsHandler,
+        path: str,
+        namehandler: NameHandler,
+        i: int = 0
+) -> bool:
     """<expr>"""
     tokens = extract_tokens(tokens, i)
 
@@ -66,35 +83,42 @@ def _is_value_expression(tokens: list[Token] | Token, i: int = 0) -> bool:
         return False
 
     if len(tokens) == 1:
-        if tokens[0].type in (TokenTypes.NUMBER, TokenTypes.STRING) \
-                or _is_name(tokens[0]) or _is_kw(tokens[0], ('True', 'False')):
+        if tokens[0].type in (TokenTypes.NUMBER, TokenTypes.STRING) or _is_name(
+                tokens[0], errors_handler, path, namehandler
+        ) or _is_kw(tokens[0], ('True', 'False')):
             return True
 
         if tokens[0].type == TokenTypes.TUPLE:
             for item in tokens[0].value:
-                if not _is_value_expression(item):
+                if not _is_value_expression(item, errors_handler, path, namehandler):
                     return False
             return True
 
         if tokens[0].type in (TokenTypes.PARENTHESIS, TokenTypes.SQUARE_BRACKETS, TokenTypes.CURLY_BRACES):
-            return not tokens[0].value or _is_value_expression(tokens[0].value)
-    elif ops.is_op(tokens[0], source=ops.LOPS) and _is_value_expression(tokens, 1):
+            return not tokens[0].value or _is_value_expression(tokens[0].value, errors_handler, path, namehandler)
+    elif ops.is_op(tokens[0], source=ops.LOPS) and _is_value_expression(tokens, errors_handler, path, namehandler, 1):
         # LOPS check
 
         return True
     elif len(tokens) >= 3:
         # MIDDLE_OPS check
 
-        if _is_name_call_expression(tokens[:2], without_tail=True):
+        if _is_name_call_expression(tokens[:2], errors_handler, path, namehandler, without_tail=True):
             off = 1
-        elif _is_value_expression(tokens[0]):
+        elif _is_value_expression(tokens[0], errors_handler, path, namehandler):
             off = 0
         else:
             return False
 
-        if ops.is_op(tokens[1 + off], source=ops.MIDDLE_OPS) and _is_value_expression(tokens, 2 + off):
+        if ops.is_op(tokens[1 + off], source=ops.MIDDLE_OPS) and _is_value_expression(
+                tokens,
+                errors_handler,
+                path,
+                namehandler,
+                2 + off
+        ):
             return True
-    elif _is_name_call_expression(tokens, without_tail=True):
+    elif _is_name_call_expression(tokens, errors_handler, path, namehandler, without_tail=True):
         # calling name expression check
 
         return True
@@ -323,7 +347,7 @@ def _generate_expression_syntax_object(
 
                     if res['type'] != 'tuple':
                         res['value'] = [res['value']]
-    elif _is_name_call_expression(tokens, without_tail=True):
+    elif _is_name_call_expression(tokens, errors_handler, path, namehandler, without_tail=True):
         res.update(_generate_name_call_expression(tokens, errors_handler, path, namehandler))
     else:
         res.update(ops.generate_op_expression(

@@ -248,6 +248,9 @@ class NameHandler:
 
         self._core_namespace = new
 
+    def copy(self):
+        return deepcopy(self)
+
 
 __all__ = (
     'NameHandler',

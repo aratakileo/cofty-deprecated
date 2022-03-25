@@ -35,10 +35,11 @@ def _is_setvalue_expression(
 
         tokens = tokens[1:]
 
-    if len(tokens) >= 3 and _is_name(tokens[0]):
+    if len(tokens) >= 3 and _is_name(tokens[0], errors_handler, path, namehandler):
         if is_op(tokens[1], '='):
             # <value-name> = <new-value>
-            if _is_value_expression(tokens, 2):
+
+            if _is_value_expression(tokens, errors_handler, path, namehandler, 2):
                 return True
 
             errors_handler.final_push_segment(path, 'SyntaxError: invalid syntax', tokens[2], fill=True)
@@ -46,6 +47,7 @@ def _is_setvalue_expression(
 
         if is_op(tokens[1], ':'):
             # <value-name>: <value-type>
+
             if not init_type:
                 errors_handler.final_push_segment(
                     path,
@@ -71,8 +73,16 @@ def _is_setvalue_expression(
 
             if len(tokens) >= 4:
                 # <value-name>: <value-type> =
-                if len(tokens) >= 5 and is_op(tokens[3], '=') and _is_value_expression(tokens, 4):
+
+                if len(tokens) >= 5 and is_op(tokens[3], '=') and _is_value_expression(
+                        tokens,
+                        errors_handler,
+                        path,
+                        namehandler,
+                        4
+                ):
                     # <value-name>: <value-type> = <new-value>
+
                     return True
 
                 errors_handler.final_push_segment(path, 'SyntaxError: invalid syntax', tokens[3], fill=True)

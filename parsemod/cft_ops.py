@@ -96,7 +96,7 @@ def generate_op_expression(
 
     tokens = tokens[i:]
 
-    if fn_is_name_call_expression(tokens):
+    if fn_is_name_call_expression(tokens, errors_handler, path, namehandler):
         off = 1
 
         last_lvalue.update(fn_generate_name_call_expression(tokens, errors_handler, path, namehandler))
