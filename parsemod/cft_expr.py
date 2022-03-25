@@ -8,11 +8,42 @@ from lexermod.cft_token import *
 import parsemod.cft_ops as ops
 
 
-def _is_type_expression(tokens: list[Token] | Token, i: int = 0) -> bool:
+def _is_type_expression(
+        tokens: list[Token] | Token,
+        errors_handler: ErrorsHandler,
+        path: str,
+        namehandler: NameHandler,
+        i: int = 0
+) -> bool:
     tokens = extract_tokens(tokens, i)
 
     if _is_name(tokens[0]):
-        return True
+        name = tokens[0].value
+        if namehandler.has_globalname(name):
+            if namehandler.isinstance(name, 'struct'):
+                return True
+
+            errors_handler.final_push_segment(
+                path,
+                f'TypeError: name `{name}` is not a type',
+                tokens[0],
+                fill=True
+            )
+
+        errors_handler.final_push_segment(
+            path,
+            f'NameError: name `{name}` is not defined',
+            tokens[0],
+            fill=True
+        )
+        return False
+
+    errors_handler.final_push_segment(
+        path,
+        f'SyntaxError: invalid syntax',
+        tokens[0],
+        fill=True
+    )
 
     return False
 
@@ -83,8 +114,13 @@ def _generate_name_call_expression(
 
         return {}
 
-    if not namehandler.isinstance(name, 'fn'):
-        errors_handler.final_push_segment(path, f'NameError: name `{name}` is not a function', tokens[0], fill=True)
+    if not namehandler.isinstance(name, ('fn', 'struct')):
+        errors_handler.final_push_segment(
+            path,
+            f'NameError: name `{name}` is not a function or structure',
+            tokens[0],
+            fill=True
+        )
 
         return {}
 
@@ -99,13 +135,26 @@ def _generate_name_call_expression(
         else:
             args_tokens = [tokens[1].value]
 
-    namehandler_obj = namehandler.get_current_body(name)
+    namehandler_obj = namehandler.get_current_body(name).copy()
+
+    if namehandler_obj['type'] == 'struct':
+        args_dict = namehandler_obj['value']
+        expected_kwargs = list(args_dict.keys())
+        max_args = positional_args = len(expected_kwargs)
+        returned_type = namehandler_obj['name']
+    else:
+        args_dict = namehandler_obj['args']
+        expected_kwargs = list(args_dict.keys())
+        max_args = namehandler_obj['max-args']
+        positional_args = namehandler_obj['positional-args']
+        returned_type = namehandler_obj['returned-type']
+
     required_positional_args = len(args_tokens)
 
-    if required_positional_args > namehandler_obj['max-args']:
+    if required_positional_args > max_args:
         errors_handler.final_push_segment(
             path,
-            f'TypeError: {name}() takes {namehandler_obj["max-args"]} positional arguments '
+            f'TypeError: {name}() takes {max_args} positional arguments '
             f'but {required_positional_args} was given',
             tokens[1],
             fill=True
@@ -113,11 +162,9 @@ def _generate_name_call_expression(
 
         return {}
 
-    expected_kwargs = list(namehandler_obj['args'].keys())
-
-    if required_positional_args < namehandler_obj['positional-args']:
-        missing = namehandler_obj['positional-args'] - required_positional_args
-        missed_args = expected_kwargs[required_positional_args: namehandler_obj['positional-args']]
+    if required_positional_args < positional_args:
+        missing = positional_args - required_positional_args
+        missed_args = expected_kwargs[required_positional_args: positional_args]
         error_tail = f'`{missed_args[-1]}`'
 
         if missing > 1:
@@ -152,7 +199,7 @@ def _generate_name_call_expression(
 
         del arg['$tokens-len']
 
-        expected_type = namehandler_obj['args'][expected_kwargs[i]]
+        expected_type = args_dict[expected_kwargs[i]]
         expected_type = expected_type['type'] if expected_type['value'] is None \
             else get_value_returned_type(expected_type['value'])
 
@@ -170,7 +217,7 @@ def _generate_name_call_expression(
         'type': '$call-name',
         'called-name': name,
         'args': args,
-        'returned-type': namehandler_obj['returned-type'],
+        'returned-type': returned_type,
         '$has-effect': True,  # temp value
         '$constant-expr': False  # temp value
     }

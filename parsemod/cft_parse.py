@@ -76,7 +76,7 @@ def generate_code_body(
     while i < len(tokens):
         token = tokens[i]
 
-        if _is_setvalue_expression(tokens, errors_handler, path, i):
+        if _is_setvalue_expression(tokens, errors_handler, path, namehandler, i):
             # set variable value
             # <name> "=" <expr>
 
@@ -92,7 +92,7 @@ def generate_code_body(
 
             _has_constant_expr(main_body, False)
         elif _is_kw(token, ('let', 'val')) and _is_setvalue_expression(
-                tokens, errors_handler, path, i + 1, init_type=token.value
+                tokens, errors_handler, path, namehandler, i + 1, init_type=token.value
         ):
             # init variable
             # ("let" | "val") <name>(":" <typename>)? "=" <expr>
@@ -209,7 +209,7 @@ def generate_code_body(
                 return {}
 
             i += 2 + off
-        elif _is_fn_init(tokens, errors_handler, path, i):
+        elif _is_fn_init(tokens, errors_handler, path, namehandler, i):
             type_specification = is_op(tokens[i + 3], '->')
             returned_type = 'None' if not type_specification else tokens[i + 4].value
             positional_args = 0
@@ -336,7 +336,7 @@ def generate_code_body(
                 del returned_value['$tokens-len']
 
             i += 1
-        elif _is_struct_init(tokens, errors_handler, path, i):
+        elif _is_struct_init(tokens, errors_handler, path, namehandler, i):
             name = tokens[i + 1].value
             off = (0 if tokens[i + 2].type == TokenTypes.CURLY_BRACES else 1)
             body_token = tokens[i + 2 + off]

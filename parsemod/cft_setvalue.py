@@ -11,6 +11,7 @@ def _is_setvalue_expression(
         tokens: list[Token],
         errors_handler: ErrorsHandler,
         path: str,
+        namehandler: NameHandler,
         i: int = 0,
         init_type=''
 ) -> bool:
@@ -54,8 +55,7 @@ def _is_setvalue_expression(
                 )
                 return False
 
-            if not _is_type_expression(tokens[2]):
-                errors_handler.final_push_segment(path, 'SyntaxError: invalid syntax', tokens[2], fill=True)
+            if not _is_type_expression(tokens[2], errors_handler, path, namehandler):
                 return False
 
             if init_type == 'val' and (len(tokens) == 3 or not is_op(tokens[3], '=')):

@@ -2,6 +2,7 @@ from parsemod.cft_others import extract_tokens_with_code_body, _is_code_body
 from parsemod.cft_setvalue import _is_setvalue_expression
 from parsemod.cft_kw import _is_kw, _is_name
 from cft_errors_handler import ErrorsHandler
+from cft_namehandler import NameHandler
 from parsemod.cft_ops import is_op
 from lexermod.cft_token import *
 
@@ -10,6 +11,7 @@ def _is_fn_init(
         tokens: list[Token] | Token,
         errors_handler: ErrorsHandler,
         path: str,
+        namehandler: NameHandler,
         i: int = 0
 ):
     """ "fn" <fn-name> "("<arg>*")" (":" <returned-type>)? <code-body>"""
@@ -44,7 +46,7 @@ def _is_fn_init(
                 if not arg_tokens:
                     break
 
-                if not _is_setvalue_expression(arg_tokens, errors_handler, path, init_type='let'):
+                if not _is_setvalue_expression(arg_tokens, errors_handler, path, namehandler, init_type='let'):
                     errors_handler.final_push_segment(
                         path,
                         'SyntaxError: invalid syntax',
@@ -63,7 +65,7 @@ def _is_fn_init(
                         fill=True
                     )
                     return False
-        elif not _is_setvalue_expression(args_tokens, errors_handler, path, init_type='let'):
+        elif not _is_setvalue_expression(args_tokens, errors_handler, path, namehandler, init_type='let'):
             return False
 
     return True

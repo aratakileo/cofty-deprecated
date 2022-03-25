@@ -58,7 +58,14 @@ class NameHandler:
 
         return self.has_globalname(name) and isinstance(self._accessible_names[name]['value'], list)
 
-    def isinstance(self, name: str, _type: str = None, returned_type: str = None):
+    def isinstance(self, name: str, _type: tuple | list | str = None, returned_type: str = None):
+        if isinstance(_type, tuple | list):
+            for t in _type:
+                if self.isinstance(name, t, returned_type):
+                    return True
+
+            return False
+
         _body = self.get_current_body(name)
         return (_type is None or _body['type'] == _type) and (
                 returned_type is None or ('returned-type' in _body['value'] and get_value_returned_type(_body['value']))

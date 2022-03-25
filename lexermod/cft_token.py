@@ -3,22 +3,21 @@ from enum import Enum
 
 
 class TokenTypes(Enum):
-    MAIN = -2
-    QUOTATION_MARK = -1
-    SKIP = 0
-    OP = 1
-    NEWLINE = 2
-    ENDMARKER = 3
-    MISMATCH = 4
-    STRING = 5
-    NAME = 6
-    DOT = 7
-    NUMBER = 8
-    COMMENT = 9
-    TUPLE = 10  # <expression>, <expression>
-    PARENTHESIS = 11  # (<expression>)
-    SQUARE_BRACKETS = 12  # [<expression>]
-    CURLY_BRACES = 13  # {<expression>}
+    MAIN            = -2  # temp token
+    QUOTATION_MARK  = -1  # temp token
+    SKIP            = 0
+    COMMENT         = 1
+    OP              = 2
+    NEWLINE         = 3
+    ENDMARKER       = 4
+    MISMATCH        = 5
+    STRING          = 6
+    NAME            = 7
+    NUMBER          = 8
+    TUPLE           = 9   # <expression>, <expression>
+    PARENTHESIS     = 10  # (<expression>)
+    SQUARE_BRACKETS = 11  # [<expression>]
+    CURLY_BRACES    = 12  # {<expression>}
 
 
 class TokenType:

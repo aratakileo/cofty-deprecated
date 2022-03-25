@@ -21,7 +21,7 @@ ASSIGN_OPS = ['=']
 USER_OPS = list(set(LOPS) | set(MIDDLE_OPS)) + ASSIGN_OPS
 """All user's operators (overloadable)"""
 
-NOTUSER_OPS = [':', '->']
+NOTUSER_OPS = [':', '->', '::', '.']
 """All not user's operators (non-overloadable)"""
 
 ALL_OPS = USER_OPS + NOTUSER_OPS

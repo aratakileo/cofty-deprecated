@@ -4,11 +4,17 @@ from parsemod.cft_expr import _is_type_expression
 from lexermod.cft_token import Token, TokenTypes
 from cft_errors_handler import ErrorsHandler
 from parsemod.cft_kw import _is_kw, _is_name
+from cft_namehandler import NameHandler
 from parsemod.cft_ops import is_op
 
 
-def _is_segment(tokens: list[Token], errors_handler: ErrorsHandler, path: str):
-    if len(tokens) == 3 and _is_name(tokens[0]) and is_op(tokens[1], ':') and _is_type_expression(tokens[2]):
+def _is_segment(tokens: list[Token], errors_handler: ErrorsHandler, path: str, namehandler: NameHandler):
+    if len(tokens) == 3 and _is_name(tokens[0]) and is_op(tokens[1], ':') and _is_type_expression(
+            tokens[2],
+            errors_handler,
+            path,
+            namehandler
+    ):
         return True
 
     errors_handler.final_push_segment(path, 'SyntaxError: invalid syntax', tokens[-1], fill=True)
@@ -19,6 +25,7 @@ def _is_struct_init(
         tokens: list[Token] | Token,
         errors_handler: ErrorsHandler,
         path: str,
+        namehandler: NameHandler,
         i: int = 0
 ):
     tokens = extract_tokens_with_code_body(tokens, i)
@@ -41,12 +48,12 @@ def _is_struct_init(
                         if not arg_tokens:
                             break
 
-                        if not _is_segment(arg_tokens, errors_handler, path):
+                        if not _is_segment(arg_tokens, errors_handler, path, namehandler):
                             return False
 
                     return True
 
-                if _is_segment(body_tokens, errors_handler, path):
+                if _is_segment(body_tokens, errors_handler, path, namehandler):
                     return True
 
                 return False
