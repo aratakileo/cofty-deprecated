@@ -1,8 +1,8 @@
-from cft_namehandler import NameHandler, get_value_returned_type
+from cft_namehandler import NameHandler, get_value_returned_type, get_local_name
+from parsemod.cft_name import is_name, is_kw, compose_name
 from parsemod.cft_others import extract_tokens
 from cft_errors_handler import ErrorsHandler
 from compile.cft_compile import get_num_type
-from parsemod.cft_kw import _is_name, _is_kw
 from py_utils import isnotfinished
 from lexermod.cft_token import *
 import parsemod.cft_ops as ops
@@ -17,23 +17,26 @@ def _is_type_expression(
 ) -> bool:
     tokens = extract_tokens(tokens, i)
 
-    if _is_name(tokens[0], errors_handler, path, namehandler):
-        name = tokens[0].value
-        if namehandler.has_globalname(name):
-            if namehandler.isinstance(name, '$struct'):
+    if tokens is None:
+        return False
+
+    if is_name(tokens, errors_handler, path, namehandler):
+        composed_name = compose_name(tokens)
+        if namehandler.has_globalname(composed_name):
+            if namehandler.isinstance(composed_name, '$struct'):
                 return True
 
             errors_handler.final_push_segment(
                 path,
-                f'TypeError: name `{name}` is not a type',
-                tokens[0],
+                f'TypeError: name `{get_local_name(composed_name)}` is not a type',
+                tokens[-1],
                 fill=True
             )
 
         errors_handler.final_push_segment(
             path,
-            f'NameError: name `{name}` is not defined',
-            tokens[0],
+            f'NameError: name `{get_local_name(composed_name)}` is not defined',
+            tokens[-1],
             fill=True
         )
         return False
@@ -41,7 +44,7 @@ def _is_type_expression(
     errors_handler.final_push_segment(
         path,
         f'SyntaxError: invalid syntax',
-        tokens[0],
+        tokens[-1],
         fill=True
     )
 
@@ -58,7 +61,7 @@ def _is_name_call_expression(
 ):
     tokens = tokens[i:]
 
-    if len(tokens) < 2 or (without_tail and len(tokens) != 2) or not _is_name(
+    if len(tokens) < 2 or (without_tail and len(tokens) != 2) or not is_name(
             tokens[0],
             errors_handler,
             path,
@@ -83,9 +86,9 @@ def _is_value_expression(
         return False
 
     if len(tokens) == 1:
-        if tokens[0].type in (TokenTypes.NUMBER, TokenTypes.STRING) or _is_name(
+        if tokens[0].type in (TokenTypes.NUMBER, TokenTypes.STRING) or is_name(
                 tokens[0], errors_handler, path, namehandler
-        ) or _is_kw(tokens[0], ('True', 'False')):
+        ) or is_kw(tokens[0], ('True', 'False')):
             return True
 
         if tokens[0].type == TokenTypes.TUPLE:
@@ -138,7 +141,7 @@ def _generate_name_call_expression(
 
         return {}
 
-    if not namehandler.isinstance(name, ('fn', 'struct')):
+    if not namehandler.isinstance(name, ('fn', '$struct')):
         errors_handler.final_push_segment(
             path,
             f'NameError: name `{name}` is not a function or structure',

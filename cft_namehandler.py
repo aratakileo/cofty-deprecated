@@ -8,6 +8,17 @@ def get_value_returned_type(obj: dict):
     return obj['returned-type'] if obj['returned-type'] != '$self' else obj['type']
 
 
+def get_local_name(composed_name: list | str):
+    if isinstance(composed_name, str):
+        return composed_name
+
+    return composed_name[-1]
+
+
+def is_local_name(composed_name: list | str):
+    return isinstance(composed_name, str) or len(composed_name) == 1
+
+
 NAME_HANDLER_TYPES = ['$mod', '$local-space', '$handler', 'fn', '$struct']
 
 
@@ -46,48 +57,100 @@ class NameHandler:
 
         return current
 
-    def has_localname(self, name: str):
-        return name in self.abs_current_obj['value']
+    def get_name_obj(self, composed_name: list | str, from_obj=...):
+        """:param from_obj self.abs_current_obj"""
+        if from_obj is ...:
+            from_obj = self.abs_current_obj
 
-    def has_globalname(self, name: str, exclude_local=False):
-        return name in self._accessible_names and not (exclude_local and self.has_localname(name))
+        if from_obj is self._accessible_names:
+            from_obj = {'value': from_obj}
 
-    def is_overloaded(self, name: str, only_local=False):
+        if isinstance(composed_name, str):
+            composed_name = [composed_name]
+
+        for name in composed_name:
+            if 'value' not in from_obj or from_obj['value'] is None or name not in from_obj['value']:
+                return None
+
+            from_obj = from_obj['value'][name]
+
+        return from_obj
+
+    def set_name_obj(self, composed_name: list | str, name_obj: dict, from_obj=...):
+        """:param from_obj self.abs_current_obj"""
+        if from_obj is ...:
+            from_obj = self.abs_current_obj
+
+        if from_obj is self._accessible_names:
+            from_obj = {'value': from_obj}
+
+        if isinstance(composed_name, str):
+            composed_name = [composed_name]
+
+        for name in composed_name[:-1]:
+            if 'value' not in from_obj or from_obj['value'] is None or name not in from_obj['value']:
+                return False
+
+            from_obj = from_obj['value'][name]
+
+        if 'value' not in from_obj or from_obj['value'] is None:
+            return False
+
+        from_obj['value'][composed_name[-1]] = name_obj
+
+        return True
+
+    def has_localname(self, composed_name: list | str):
+        return self.get_name_obj(composed_name) is not None
+
+    def has_globalname(self, composed_name: list | str, exclude_local=False):
+        return self.get_name_obj(composed_name, self._accessible_names) is not None \
+               and not (exclude_local and self.has_localname(composed_name))
+
+    def is_overloaded(self, composed_name: list | str, only_local=False):
         if only_local:
-            return self.has_localname(name) and isinstance(self.abs_current_obj['value'][name]['value'], list)
+            return self.has_localname(composed_name) and isinstance(self.get_name_obj(composed_name)['value'], list)
 
-        return self.has_globalname(name) and isinstance(self._accessible_names[name]['value'], list)
+        return self.has_globalname(composed_name) and isinstance(
+            self.get_name_obj(composed_name, self._accessible_names)['value'],
+            list
+        )
 
-    def isinstance(self, name: str, _type: tuple | list | str = None, returned_type: str = None):
+    def isinstance(self, composed_name: list | str, _type: tuple | list | str = None, returned_type: str = None):
         if isinstance(_type, tuple | list):
             for t in _type:
-                if self.isinstance(name, t, returned_type):
+                if self.isinstance(composed_name, t, returned_type):
                     return True
 
             return False
 
-        _body = self.get_current_body(name)
+        _body = self.get_current_body(composed_name)
         return (_type is None or _body['type'] == _type) and (
                 returned_type is None or ('returned-type' in _body['value'] and get_value_returned_type(_body['value']))
         )
 
-    def get_current_body(self, name: str):
-        if self.is_overloaded(name):
-            return self._accessible_names[name]['value'][-1]
+    def get_current_body(self, composed_name: str):
+        if self.is_overloaded(composed_name):
+            return self.get_name_obj(composed_name, self._accessible_names)['value'][-1]
 
-        return self._accessible_names[name]
+        return self.get_name_obj(composed_name, self._accessible_names)
 
-    def get_compile_name(self, name: str):
+    def get_compile_name(self, composed_name: list | str):
         prefix = self._compile_names_prefix + '_'
 
         if prefix == '_':
             prefix = ''
 
-        compile_name = f'_cft_{prefix}{name}'
+        if isinstance(composed_name, str):
+            composed_name = [composed_name]
+
+        composed_name = '_'.join(composed_name)
+
+        compile_name = f'_cft_{prefix}{composed_name}'
 
         i = 0
         while compile_name in self._used_compile_names:
-            compile_name = f'_cft_{prefix}{name}{i}'
+            compile_name = f'_cft_{prefix}{composed_name}{i}'
             i += 1
 
         self._used_compile_names.add(compile_name)
@@ -101,44 +164,48 @@ class NameHandler:
         if 'compile-name' not in obj:
             obj['compile-name'] = self.get_compile_name(obj['name'])
 
-    def force_set_name(self, name: str, **attrs):
+    def force_set_name(self, composed_name: list | str, **attrs):
         if isinstance(attrs['value'], list):
             for val in attrs['value']:
-                val.update({
-                    'name': name,
-                    '*parent': self.current_obj
-                })
-        else:
-            attrs.update({
-                'name': name,
-                '*parent': self.current_obj
-            })
+                if 'name' not in val:
+                    val['name'] = get_local_name(composed_name)
 
-            if not self.has_localname(name):
+                if '*parent' not in val:
+                    val['*parent'] = self.current_obj
+        else:
+            if 'name' not in attrs:
+                attrs['name'] = get_local_name(composed_name)
+
+            if '*parent' not in attrs:
+                attrs['*parent'] = self.current_obj
+
+            if not self.has_localname(composed_name):
                 self.adjust_attrs(attrs)
 
-        if name not in self.abs_current_obj['value']:
-            self.abs_current_obj['value'][name] = {}
+        if not self.has_localname(composed_name):
+            self.set_name_obj(composed_name, {})
 
-        self.abs_current_obj['value'][name].update(attrs)
+        name_obj = self.get_name_obj(composed_name)
 
-        if self.has_globalname(name):
-            temp = [self.abs_current_obj['value'][name]]
+        name_obj.update(attrs)
 
-            if isinstance(self.abs_current_obj['value'][name]['value'], list):
-                temp = self.abs_current_obj['value'][name]['value']
+        if self.has_globalname(composed_name) and is_local_name(composed_name):
+            temp = [name_obj]
 
-            if self.is_overloaded(name):
-                self._accessible_names[name]['value'] = self._accessible_names[name]['value'] + temp
+            if isinstance(name_obj['value'], list):
+                temp = name_obj['value']
+
+            if self.is_overloaded(composed_name):
+                self.get_name_obj(composed_name, self._accessible_names)['value'] += temp
             else:
-                self._accessible_names[name] = {
+                self.set_name_obj(composed_name, {
                     'type': NAME_HANDLER_TYPES[2],
-                    'value': [self._accessible_names[name]] + temp
-                }
+                    'value': [self.get_name_obj(composed_name, self._accessible_names)] + temp
+                }, from_obj=self._accessible_names)
 
             return
 
-        self._accessible_names[name] = self.abs_current_obj['value'][name]
+        self.set_name_obj(composed_name, name_obj, from_obj=self._accessible_names)
 
     def overload_name(self, name: str, _type: str, value: dict, **attrs):
         new_obj = {
@@ -225,6 +292,28 @@ class NameHandler:
                         remove_parent(_dict['value'][name])
 
         copy = deepcopy(self._core_namespace)
+
+        for name in copy:
+            remove_parent(copy[name])
+
+        return dumps(copy)
+
+    def accessible_to_json(self) -> str:
+        """Debug method"""
+
+        def remove_parent(_dict: dict):
+            if '*parent' in _dict:
+                del _dict['*parent']
+
+            if _dict['type'] in NAME_HANDLER_TYPES and 'value' in _dict:
+                if isinstance(_dict['value'], list):
+                    for obj in _dict['value']:
+                        remove_parent(obj)
+                else:
+                    for name in _dict['value']:
+                        remove_parent(_dict['value'][name])
+
+        copy = deepcopy(self._accessible_names)
 
         for name in copy:
             remove_parent(copy[name])

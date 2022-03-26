@@ -1,7 +1,7 @@
 from parsemod.cft_others import extract_tokens, extract_tokens_with_code_body, _is_code_body, remove_newline_by_borders
 from cft_namehandler import NameHandler, get_value_returned_type
 from lexermod.cft_token import Token, TokenTypes, DummyToken
-from parsemod.cft_kw import _is_kw, _is_name, _is_base_name
+from parsemod.cft_name import is_kw, is_base_name
 from parsemod.cft_syntaxtree_values import pNone
 from parsemod.cft_struct import _is_struct_init
 from cft_errors_handler import ErrorsHandler
@@ -64,8 +64,8 @@ def _is_mod(
 ):
     tokens = extract_tokens_with_code_body(tokens, i)
 
-    if tokens is not None and _is_kw(tokens[0], 'mod'):
-        if len(tokens) == 3 and _is_base_name(tokens[1]) and _is_code_body(tokens, 2):
+    if tokens is not None and is_kw(tokens[0], 'mod'):
+        if len(tokens) == 3 and is_base_name(tokens[1]) and _is_code_body(tokens, 2):
             return True
 
         errors_handler.final_push_segment(path, 'SyntaxError: invalid syntax', tokens[-1], fill=True)
@@ -120,7 +120,7 @@ def generate_code_body(
             del generated['$tokens-len'], generated['$constant-expr']
 
             _has_constant_expr(main_body, False)
-        elif _is_kw(token, ('let', 'val')) and _is_setvalue_expression(
+        elif is_kw(token, ('let', 'val')) and _is_setvalue_expression(
                 tokens, errors_handler, path, namehandler, i + 1, init_type=token.value
         ):
             # init variable
@@ -129,8 +129,6 @@ def generate_code_body(
             # what does that mean?
             # let - visible only in current function
             # val - constant value, visible only in current function
-
-            # TODO: MAKE THAT'S MODIFICATIONS SYSTEM
 
             generated = _generate_setvalue_syntax_object(
                 tokens,
@@ -145,12 +143,6 @@ def generate_code_body(
                 return {}
 
             current_body['value'].append(generated)
-
-            if not errors_handler.has_errors():
-                generated.update({
-                    'type': 'init-value',
-                    'init-type': token.value
-                })
 
             i += generated['$tokens-len'] + 1
 
@@ -327,7 +319,7 @@ def generate_code_body(
                 return {}
 
             i += (6 if type_specification else 4) + off
-        elif _is_kw(token, 'return'):
+        elif is_kw(token, 'return'):
             if base_body_type != '$fn-body':
                 errors_handler.final_push_segment(path, 'SyntaxError: \'return\' outside function', token, fill=True)
                 return {}
@@ -517,6 +509,8 @@ def generate_code_body(
 
     if body_type != '$main-body':
         namehandler.leave_current_localspace()
+    else:
+        print(namehandler.accessible_to_json())
 
     return main_body
 

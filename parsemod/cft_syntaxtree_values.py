@@ -1,1 +1,1 @@
-pNone = {'type': 'None', 'returned-type': 'None'}
+pNone = {'type': 'None', 'value': 'None', 'returned-type': 'None'}

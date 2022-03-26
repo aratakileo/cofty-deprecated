@@ -1,7 +1,7 @@
 from parsemod.cft_others import extract_tokens_with_code_body
 from parsemod.cft_others import remove_newline_by_borders
+from parsemod.cft_name import is_kw, is_base_name
 from parsemod.cft_expr import _is_type_expression
-from parsemod.cft_kw import _is_kw, _is_base_name
 from lexermod.cft_token import Token, TokenTypes
 from cft_errors_handler import ErrorsHandler
 from cft_namehandler import NameHandler
@@ -9,7 +9,7 @@ from parsemod.cft_ops import is_op
 
 
 def _is_segment(tokens: list[Token], errors_handler: ErrorsHandler, path: str, namehandler: NameHandler):
-    if len(tokens) == 3 and _is_base_name(tokens[0]) and is_op(tokens[1], ':') and _is_type_expression(
+    if len(tokens) == 3 and is_base_name(tokens[0]) and is_op(tokens[1], ':') and _is_type_expression(
             tokens[2],
             errors_handler,
             path,
@@ -33,9 +33,9 @@ def _is_struct_init(
     if tokens is None:
         return False
 
-    if _is_kw(tokens[0], 'struct'):
+    if is_kw(tokens[0], 'struct'):
         if len(tokens) == 3:
-            if _is_base_name(tokens[1]) and tokens[2].type == TokenTypes.CURLY_BRACES:
+            if is_base_name(tokens[1]) and tokens[2].type == TokenTypes.CURLY_BRACES:
                 body_tokens = remove_newline_by_borders(tokens[2].value)
 
                 if not body_tokens:
