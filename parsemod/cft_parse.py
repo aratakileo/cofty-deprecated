@@ -62,6 +62,8 @@ def _is_mod(
         namehandler: NameHandler,
         i: int = 0
 ):
+    # TODO: NEEDS TO ADD A SUPPORT OF OVERLOADING THE NAMES
+
     tokens = extract_tokens_with_code_body(tokens, i)
 
     if tokens is not None and is_kw(tokens[0], 'mod'):

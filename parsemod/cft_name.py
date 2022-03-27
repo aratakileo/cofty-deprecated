@@ -98,7 +98,16 @@ def is_name(
 
             temp = namehandler.get_current_body(name)
 
-            if 'value' not in temp or temp['value'] is None or 'type' in temp['value']:
+            if 'value' not in temp or temp['value'] is None:
+                errors_handler.final_push_segment(
+                    path,
+                    f'ValueError: `{name}` is not initialized',
+                    name_token,
+                    fill=True
+                )
+                return False
+
+            if 'type' in temp['value']:
                 errors_handler.final_push_segment(
                     path,
                     f'AccessError: cannot get access to names of `{name}`',
