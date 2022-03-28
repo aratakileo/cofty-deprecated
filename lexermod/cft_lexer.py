@@ -142,6 +142,13 @@ def _get_prevbody(_main_body: DummyToken, _current_body: DummyToken | Token) -> 
     return prev
 
 
+def _append(_current_body: DummyToken | Token, _token: DummyToken | Token):
+    if _current_body.value and isinstance(_current_body.value[-1], list):
+        _current_body.value[-1].append(_token)
+    else:
+        _current_body.value.append(_token)
+
+
 BRACKETS = {
     '(': TokenTypes.PARENTHESIS,
     ')': TokenTypes.PARENTHESIS,
@@ -150,13 +157,6 @@ BRACKETS = {
     '{': TokenTypes.CURLY_BRACES,
     '}': TokenTypes.CURLY_BRACES,
 }
-
-
-def _append(_current_body: DummyToken | Token, _token: DummyToken | Token):
-    if _current_body.value and isinstance(_current_body.value[-1], list):
-        _current_body.value[-1].append(_token)
-    else:
-        _current_body.value.append(_token)
 
 
 def compose_tokens(s: str, path: str, tokens: list[Token], errors_handler: ErrorsHandler):
