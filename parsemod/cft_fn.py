@@ -1,6 +1,7 @@
 from parsemod.cft_others import extract_tokens_with_code_body, _is_code_body
 from parsemod.cft_setvalue import _is_setvalue_expression
-from parsemod.cft_name import is_kw, is_name
+from parsemod.cft_expr import _is_type_expression
+from parsemod.cft_name import is_kw, is_base_name
 from cft_errors_handler import ErrorsHandler
 from cft_namehandler import NameHandler
 from parsemod.cft_ops import is_op
@@ -23,12 +24,10 @@ def _is_fn_init(
 
     type_annotation = len(tokens) != 4
 
-    if len(tokens) not in (4, 6) or not is_name(
-            tokens[1], errors_handler, path, namehandler
-    ) or tokens[2].type != TokenTypes.PARENTHESIS or not (
+    if len(tokens) not in (4, 6) or not is_base_name(tokens[1]) or tokens[2].type != TokenTypes.PARENTHESIS or not (
             type_annotation or _is_code_body(tokens[3])
     ) or (
-            type_annotation and not (is_op(tokens[3], '->') and is_name(
+            type_annotation and not (is_op(tokens[3], '->') and _is_type_expression(
                 tokens[4],
                 errors_handler,
                 path,
