@@ -9,8 +9,8 @@ from parsemod.cft_ops import is_op
 
 
 def _is_segment(tokens: list[Token], errors_handler: ErrorsHandler, path: str, namehandler: NameHandler):
-    if len(tokens) == 3 and is_base_name(tokens[0]) and is_op(tokens[1], ':') and _is_type_expression(
-            tokens[2],
+    if len(tokens) >= 3 and is_base_name(tokens[0]) and is_op(tokens[1], ':') and _is_type_expression(
+            tokens[2:],
             errors_handler,
             path,
             namehandler

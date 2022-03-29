@@ -1,7 +1,7 @@
 from parsemod.cft_others import extract_tokens, extract_tokens_with_code_body, _is_code_body, remove_newline_by_borders
 from cft_namehandler import NameHandler, get_value_returned_type
+from parsemod.cft_name import is_kw, is_base_name, compose_name
 from lexermod.cft_token import Token, TokenTypes, DummyToken
-from parsemod.cft_name import is_kw, is_base_name
 from parsemod.cft_syntaxtree_values import pNone
 from parsemod.cft_struct import _is_struct_init
 from cft_errors_handler import ErrorsHandler
@@ -411,7 +411,7 @@ def generate_code_body(
 
                     namehandler.force_set_name(
                         segment_name,
-                        type=segment_tokens[2].value,
+                        type=compose_name(segment_tokens[2:]),
                         value=None
                     )
 
