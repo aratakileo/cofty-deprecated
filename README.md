@@ -67,11 +67,31 @@ At first, you need
 
 > __*The compilation of the code is not ready yet, and the language itself is not finished yet and does not have support for the minimum allowable syntax. Using the project's capabilities at this stage is at your own risk!*__
 
-### Hello World
-In `main.cft`
+### Code examples
+#### Hello World
 ```py
 print('Hello World!')
 ```
+#### Comment
+```sql
+-- insert comment here
+```
+#### Using variables
+Just a variable (immutable)
+```sql
+let a = 123
+a = 1234  -- error
+```
+Mutable variable
+```py
+let mut hello_world = 'Hello World'
+hello_world = 'Hello World!'
+```
+Constant variable
+```kt
+val ENDL = c'\n'
+```
+
 <!--
 # Different languages syntax comparison
 ### Program starting
