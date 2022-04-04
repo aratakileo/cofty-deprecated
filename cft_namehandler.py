@@ -343,7 +343,8 @@ class NameHandler:
 
 __all__ = (
     'NameHandler',
-    'get_value_returned_type'
+    'get_value_returned_type',
+    'get_local_name'
 )
 
 
