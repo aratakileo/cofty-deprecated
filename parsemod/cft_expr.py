@@ -1,4 +1,4 @@
-from cft_namehandler import NameHandler, get_value_returned_type, get_local_name
+from cft_namehandler import NameHandler, get_value_returned_type, get_local_name, get_abs_composed_name
 from parsemod.cft_name import is_name, is_kw, compose_name
 from parsemod.cft_others import extract_tokens
 from cft_errors_handler import ErrorsHandler
@@ -57,7 +57,32 @@ def _is_name_call_expression(
         path: str,
         namehandler: NameHandler,
         i: int = 0,
-        without_tail=False
+        without_tail=False  # if True tokens after call name expression are not taken into account
+):
+    tokens = tokens[i:]
+
+    parenthesis_index = -1
+
+    for k in range(len(tokens)):
+        if tokens[k].type == TokenTypes.PARENTHESIS:
+            parenthesis_index = k
+            break
+
+    if parenthesis_index == -1 or not is_name(tokens[:parenthesis_index], errors_handler, path, namehandler) or (
+            without_tail and len(tokens) > (parenthesis_index + 1)
+    ):
+        return False
+
+    return True
+
+
+def _is_name_call_expression_old(
+        tokens: list[Token] | Token,
+        errors_handler: ErrorsHandler,
+        path: str,
+        namehandler: NameHandler,
+        i: int = 0,
+        without_tail=False  # if True tokens after call name expression are not taken into account
 ):
     tokens = tokens[i:]
 
@@ -103,24 +128,24 @@ def _is_value_expression(
         # LOPS check
 
         return True
-    elif len(tokens) >= 3:
-        # MIDDLE_OPS check
-
-        if _is_name_call_expression(tokens[:2], errors_handler, path, namehandler, without_tail=True):
-            off = 1
-        elif _is_value_expression(tokens[0], errors_handler, path, namehandler):
-            off = 0
-        else:
-            return False
-
-        if ops.is_op(tokens[1 + off], source=ops.MIDDLE_OPS) and _is_value_expression(
-                tokens,
-                errors_handler,
-                path,
-                namehandler,
-                2 + off
-        ):
-            return True
+    # elif len(tokens) >= 3:
+    #     # MIDDLE_OPS check
+    #
+    #     if _is_name_call_expression(tokens[:2], errors_handler, path, namehandler, without_tail=True):
+    #         off = 1
+    #     elif _is_value_expression(tokens[0], errors_handler, path, namehandler):
+    #         off = 0
+    #     else:
+    #         return False
+    #
+    #     if ops.is_op(tokens[1 + off], source=ops.MIDDLE_OPS) and _is_value_expression(
+    #             tokens,
+    #             errors_handler,
+    #             path,
+    #             namehandler,
+    #             2 + off
+    #     ):
+    #         return True
     elif _is_name_call_expression(tokens, errors_handler, path, namehandler, without_tail=True):
         # calling name expression check
 
@@ -135,17 +160,21 @@ def _generate_name_call_expression(
         path: str,
         namehandler: NameHandler
 ):
-    name = tokens[0].value
-    if not namehandler.has_globalname(name):
-        errors_handler.final_push_segment(path, f'NameError: name `{name}` is not defined', tokens[0], fill=True)
+    parenthesis_index = 1
 
-        return {}
+    while parenthesis_index < len(tokens):
+        if tokens[parenthesis_index].type == TokenTypes.PARENTHESIS:
+            break
+
+        parenthesis_index += 1
+
+    name = compose_name(tokens[:parenthesis_index])
 
     if not namehandler.isinstance(name, ('fn', '$struct')):
         errors_handler.final_push_segment(
             path,
-            f'NameError: name `{name}` is not a function or structure',
-            tokens[0],
+            f'NameError: name `{get_local_name(name)}` is not a function or structure',
+            tokens[parenthesis_index - 1],
             fill=True
         )
 
@@ -153,14 +182,14 @@ def _generate_name_call_expression(
 
     args_tokens = []
 
-    if tokens[1].value:
-        if tokens[1].value[0].type == TokenTypes.TUPLE:
-            args_tokens = tokens[1].value[0].value
+    if tokens[parenthesis_index].value:
+        if tokens[parenthesis_index].value[0].type == TokenTypes.TUPLE:
+            args_tokens = tokens[parenthesis_index].value[0].value
 
             if not args_tokens[-1]:
                 del args_tokens[-1]
         else:
-            args_tokens = [tokens[1].value]
+            args_tokens = [tokens[parenthesis_index].value]
 
     namehandler_obj = namehandler.get_current_body(name).copy()
 
@@ -168,7 +197,7 @@ def _generate_name_call_expression(
         args_dict = namehandler_obj['value']
         expected_kwargs = list(args_dict.keys())
         max_args = positional_args = len(expected_kwargs)
-        returned_type = namehandler_obj['name']
+        returned_type = get_abs_composed_name(namehandler_obj)
     else:
         args_dict = namehandler_obj['args']
         expected_kwargs = list(args_dict.keys())
@@ -181,9 +210,9 @@ def _generate_name_call_expression(
     if required_positional_args > max_args:
         errors_handler.final_push_segment(
             path,
-            f'TypeError: {name}() takes {max_args} positional arguments '
+            f'TypeError: {get_local_name(name)}() takes {max_args} positional arguments '
             f'but {required_positional_args} was given',
-            tokens[1],
+            tokens[parenthesis_index],
             fill=True
         )
 
@@ -205,8 +234,8 @@ def _generate_name_call_expression(
 
         errors_handler.final_push_segment(
             path,
-            f'TypeError: {name}() missing {missing} required positional argument' + error_tail,
-            tokens[1],
+            f'TypeError: {get_local_name(name)}() missing {missing} required positional argument' + error_tail,
+            tokens[parenthesis_index],
             fill=True
         )
 

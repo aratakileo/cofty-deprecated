@@ -112,63 +112,6 @@ def _is_setvalue_expression(
 
         return True
 
-        # isnotfinished()
-        #
-        # if _is_name(tokens[0], errors_handler, path, namehandler):
-        #     if is_op(tokens[1], '='):
-        #         # <value-name> = <new-value>
-        #
-        #         if _is_value_expression(tokens, errors_handler, path, namehandler, 2):
-        #             return True
-        #
-        #         errors_handler.final_push_segment(path, 'SyntaxError: invalid syntax', tokens[2], fill=True)
-        #         return False
-        #
-        #     if is_op(tokens[1], ':'):
-        #         # <value-name>: <value-type>
-        #
-        #         if not init_type:
-        #             errors_handler.final_push_segment(
-        #                 path,
-        #                 'SyntaxError: type annotation is not possible for an already existing variable',
-        #                 tokens[1],
-        #                 fill=True
-        #             )
-        #             return False
-        #
-        #         if not _is_type_expression(tokens[2], errors_handler, path, namehandler):
-        #             return False
-        #
-        #         if init_type == 'val' and (len(tokens) == 3 or not is_op(tokens[3], '=')):
-        #             errors_handler.final_push_segment(path, 'SyntaxError: constant without value', tokens[0], fill=True)
-        #             errors_handler.final_push_segment(
-        #                 path,
-        #                 f'provide a definition for the constant: `= <expr>`',
-        #                 tokens[2],
-        #                 type=ErrorsHandler.HELP,
-        #                 offset=len(tokens[2].value) - 1
-        #             )
-        #             return False
-        #
-        #         if len(tokens) >= 4:
-        #             # <value-name>: <value-type> =
-        #
-        #             if len(tokens) >= 5 and is_op(tokens[3], '=') and _is_value_expression(
-        #                     tokens,
-        #                     errors_handler,
-        #                     path,
-        #                     namehandler,
-        #                     4
-        #             ):
-        #                 # <value-name>: <value-type> = <new-value>
-        #
-        #                 return True
-        #
-        #             errors_handler.final_push_segment(path, 'SyntaxError: invalid syntax', tokens[3], fill=True)
-        #             return False
-        #
-        #         return True
-
     return False
 
 
@@ -217,6 +160,12 @@ def _generate_setvalue_syntax_object(
     namehandler_res = {
         'const': init_type == 'val'
     }
+
+    if init_type:
+        namehandler_res.update({
+            'name': composed_name,
+            '*parent': namehandler.abs_current_obj
+        })
 
     if sep_op_index != -1:
         # : <value-type>
@@ -274,11 +223,13 @@ def _generate_setvalue_syntax_object(
 
     if namehandler.has_localname(composed_name):
         name_obj = _name_obj = namehandler.get_name_obj(composed_name)
+        print(composed_name, ':', namehandler.abs_current_obj['name'], namehandler.get_name_obj(composed_name)['*parent']['*parent']['name'])
 
         while 'const' not in _name_obj:
             _name_obj = _name_obj['*parent']
 
         if _name_obj['const'] or _name_obj['value'] is not None and not _name_obj['mut']:
+            print(_name_obj)
             errors_handler.final_push_segment(
                 path,
                 f'ValueError: cannot assign twice to {"constant" if _name_obj["const"] else "immutable"} variable',
@@ -296,7 +247,7 @@ def _generate_setvalue_syntax_object(
             )
             return {}
 
-        if name_obj['type'] != '$undefined' and name_obj['type'] != value_type and not init_type:
+        if value_type != '$undefined' and name_obj['type'] != value_type and not init_type:
             errors_handler.final_push_segment(
                 path,
                 f'TypeError: expected type `{name_obj["type"]}`, got `{value_type}`',
@@ -309,112 +260,6 @@ def _generate_setvalue_syntax_object(
         namehandler_res['mut'] = is_kw(tokens[0], 'mut')
 
     namehandler.force_set_name(composed_name, **namehandler_res)
-
-    return res
-
-
-def _generate_setvalue_syntax_object_old(
-        tokens: list[Token],
-        errors_handler: ErrorsHandler,
-        path: str,
-        namehandler: NameHandler,
-        i: int = 0,
-        init_type=''
-):
-    _tokens = tokens = extract_tokens(tokens, i)
-
-    if is_kw(_tokens[0], 'mut'):
-        _tokens = _tokens[1:]
-
-    name = _tokens[0].value
-    new_value = None
-    value_type = None
-
-    # <value-name>
-    res = {
-        'type': 'init-value' if init_type else 'set-value',
-        '$tokens-len': len(tokens),  # temp value
-        '$constant-expr': True  # temp value
-    }
-
-    namehandler_res = {
-        'const': init_type == 'val'
-    }
-
-    _tokens = _tokens[1:]  # remove name-token
-
-    if is_op(_tokens[0], ':'):
-        # : <value-type>
-        value_type = _tokens[1].value
-
-        _tokens = _tokens[2:]
-
-    if _tokens and is_op(_tokens[0], '='):
-        # = <new-value>
-        new_value = _generate_expression_syntax_object(
-            _tokens,
-            errors_handler,
-            path,
-            namehandler,
-            i=1,
-            expected_type=... if value_type is None else value_type
-        )
-
-        if value_type is None:
-            value_type = get_value_returned_type(new_value)
-
-        if errors_handler.has_errors():
-            return {}
-
-        res['$constant-expr'] = new_value['$constant-expr']
-
-        del new_value['$tokens-len'], new_value['$constant-expr']
-
-    res.update({
-        'value-name': name,
-        'value-type': value_type,
-        'new-value': new_value
-    })
-
-    namehandler_res.update({
-        'type': value_type,
-        'value': new_value
-    })
-
-    if namehandler.has_localname(name):
-        name_obj = namehandler.abs_current_obj['value'][name]
-
-        if name_obj['const'] or name_obj['value'] is not None and not name_obj['mut']:
-            errors_handler.final_push_segment(
-                path,
-                f'ValueError: cannot assign twice to {"constant" if name_obj["const"] else "immutable"} variable',
-                tokens[0],
-                fill=True
-            )
-            return {}
-
-        if name_obj['const'] != namehandler_res['const']:
-            errors_handler.final_push_segment(
-                path,
-                f'ValueError: `{name}` is interpreted as a constant, not a new binding',
-                tokens[0],
-                fill=True
-            )
-            return {}
-
-        if name_obj['type'] != '$undefined' and name_obj['type'] != value_type and not init_type:
-            errors_handler.final_push_segment(
-                path,
-                f'TypeError: expected type `{name_obj["type"]}`, got `{value_type}`',
-                _tokens[1],
-                fill=True
-            )
-            return {}
-
-    if init_type:
-        namehandler_res['mut'] = is_kw(tokens[0], 'mut')
-
-    namehandler.force_set_name(name, **namehandler_res)
 
     return res
 

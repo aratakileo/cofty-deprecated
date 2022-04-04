@@ -19,21 +19,28 @@ def is_local_name(composed_name: list | str):
     return isinstance(composed_name, str) or len(composed_name) == 1
 
 
+def get_abs_composed_name(name_obj: dict):
+    composed_name = []
+
+    while name_obj['name'] != '$':
+        composed_name.insert(0, name_obj['name'])
+        name_obj = name_obj['*parent']
+
+    return ['$'] + composed_name
+
+
 NAME_HANDLER_TYPES = ['$mod', '$local-space', '$handler', 'fn', '$struct']
 
 
 class NameHandler:
     def __init__(self):
         self._core_namespace = {
-            '$main': {
-                'type': '$mod',
-                'name': '$main',
-                'value': {}
-            }
+            'type': '$mod',
+            'name': '$',
+            'value': {}
         }
-        self._core_namespace['$main']['*parent'] = self._core_namespace
 
-        self.current_obj = self._core_namespace['$main']
+        self.current_obj = self._core_namespace
         self._accessible_names = {}
         self._used_compile_names = set()
         self._compile_names_prefix = ''
@@ -67,6 +74,8 @@ class NameHandler:
 
         if isinstance(composed_name, str):
             composed_name = [composed_name]
+        elif composed_name[0] == '$':
+            return self.get_name_obj(composed_name[1:], self._core_namespace)
 
         for name in composed_name:
             if 'value' not in from_obj or from_obj['value'] is None or name not in from_obj['value']:
@@ -86,6 +95,8 @@ class NameHandler:
 
         if isinstance(composed_name, str):
             composed_name = [composed_name]
+        elif composed_name[0] == '$':
+            return self.set_name_obj(composed_name[1:], name_obj, self._core_namespace)
 
         for name in composed_name[:-1]:
             if 'value' not in from_obj or from_obj['value'] is None or name not in from_obj['value']:
@@ -293,8 +304,8 @@ class NameHandler:
 
         copy = deepcopy(self._core_namespace)
 
-        for name in copy:
-            remove_parent(copy[name])
+        for name in copy['value']:
+            remove_parent(copy['value'][name])
 
         return dumps(copy)
 
@@ -344,7 +355,8 @@ class NameHandler:
 __all__ = (
     'NameHandler',
     'get_value_returned_type',
-    'get_local_name'
+    'get_local_name',
+    'get_abs_composed_name'
 )
 
 
