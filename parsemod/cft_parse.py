@@ -233,16 +233,19 @@ def generate_code_body(
 
             i += 2 + off
         elif _is_fn_init(tokens, errors_handler, path, namehandler, i):
-            type_specification = is_op(tokens[i + 3], '->')
-            returned_type = 'None' if not type_specification else tokens[i + 4].value
+            extracted_tokens = extract_tokens(tokens, i)
+            abs_extracted_tokens = extract_tokens_with_code_body(tokens, i)
+
+            has_type_specification = is_op(extracted_tokens[3], '->')
+            returned_type = 'None' if not has_type_specification else compose_name(abs_extracted_tokens[4:-1])
             positional_args = 0
-            name = tokens[i + 1].value
+            name = extracted_tokens[1].value
 
             if namehandler.has_globalname(name):
                 errors_handler.final_push_segment(
                     path,
                     f'NameError: name `{name}` is already defined',
-                    tokens[i + 1],
+                    extracted_tokens[1],
                     fill=True
                 )
                 return {}
@@ -252,7 +255,7 @@ def generate_code_body(
             namehandler.abs_current_obj['args'] = {}
 
             args = []
-            args_tokens = tokens[i + 2].value
+            args_tokens = extracted_tokens[2].value
 
             if args_tokens:
                 temp = args_tokens[0].value
@@ -291,18 +294,16 @@ def generate_code_body(
                 'max-args': len(args)
             })
 
-            index = i + (5 if type_specification else 3)
-            off = tokens[index].type == TokenTypes.NEWLINE
-
             body = generate_code_body(
-                tokens[index + off].value,
+                abs_extracted_tokens[-1].value,
                 errors_handler,
                 path,
                 namehandler,
                 body_type='$fn-body',
                 base_body_type='$fn-body',
                 advanced_options={
-                    '$return-is-used': False  # temp value
+                    '$return-is-used': False,  # temp value
+                    '$body-token': abs_extracted_tokens[-1]  # temp value
                 }
             )
 
@@ -320,7 +321,7 @@ def generate_code_body(
             if errors_handler.has_errors():
                 return {}
 
-            i += (6 if type_specification else 4) + off
+            i += len(extracted_tokens) + (extracted_tokens[-1].type != TokenTypes.CURLY_BRACES)
         elif is_kw(token, 'return'):
             if base_body_type != '$fn-body':
                 errors_handler.final_push_segment(path, 'SyntaxError: \'return\' outside function', token, fill=True)
@@ -502,12 +503,12 @@ def generate_code_body(
             errors_handler.final_push_segment(
                 path,
                 'SyntaxError: has no (final) `return` expression',
-                tokens[-1],
+                main_body['$body-token'] if not tokens else tokens[-1],
                 fill=True
             )
             return {}
 
-        del main_body['$return-is-used']
+        del main_body['$return-is-used'], main_body['$body-token']
 
     if body_type != '$main-body':
         namehandler.leave_current_localspace()
