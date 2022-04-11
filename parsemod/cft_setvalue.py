@@ -223,13 +223,11 @@ def _generate_setvalue_syntax_object(
 
     if namehandler.has_localname(composed_name):
         name_obj = _name_obj = namehandler.get_name_obj(composed_name)
-        print(composed_name, ':', namehandler.abs_current_obj['name'], namehandler.get_name_obj(composed_name)['*parent']['*parent']['name'])
 
         while 'const' not in _name_obj:
             _name_obj = _name_obj['*parent']
 
         if _name_obj['const'] or _name_obj['value'] is not None and not _name_obj['mut']:
-            print(_name_obj)
             errors_handler.final_push_segment(
                 path,
                 f'ValueError: cannot assign twice to {"constant" if _name_obj["const"] else "immutable"} variable',
