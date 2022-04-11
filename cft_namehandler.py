@@ -213,7 +213,6 @@ class NameHandler:
                     'type': NAME_HANDLER_TYPES[2],
                     'value': [self.get_name_obj(composed_name, self._accessible_names)] + temp
                 }, from_obj=self._accessible_names)
-
             return
 
         self.set_name_obj(composed_name, name_obj, from_obj=self._accessible_names)
@@ -294,7 +293,7 @@ class NameHandler:
             if '*parent' in _dict:
                 del _dict['*parent']
 
-            if _dict['type'] in NAME_HANDLER_TYPES and 'value' in _dict:
+            if 'value' in _dict and _dict['value'] is not None and (_dict['type'] in NAME_HANDLER_TYPES or 'type' not in _dict['value']):
                 if isinstance(_dict['value'], list):
                     for obj in _dict['value']:
                         remove_parent(obj)
@@ -316,7 +315,7 @@ class NameHandler:
             if '*parent' in _dict:
                 del _dict['*parent']
 
-            if _dict['type'] in NAME_HANDLER_TYPES and 'value' in _dict:
+            if 'value' in _dict and _dict['value'] is not None and (_dict['type'] in NAME_HANDLER_TYPES or 'type' not in _dict['value']):
                 if isinstance(_dict['value'], list):
                     for obj in _dict['value']:
                         remove_parent(obj)

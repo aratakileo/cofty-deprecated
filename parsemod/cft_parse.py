@@ -513,7 +513,7 @@ def generate_code_body(
     if body_type != '$main-body':
         namehandler.leave_current_localspace()
     else:
-        print(namehandler.accessible_to_json())
+        print(namehandler.accessible_to_json())  # debug (TEMP)
 
     return main_body
 

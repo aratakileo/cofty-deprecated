@@ -1,3 +1,4 @@
+import cft_namehandler
 from cft_namehandler import NameHandler, get_value_returned_type
 from parsemod.cft_name import is_name, is_kw, compose_name
 from parsemod.cft_others import extract_tokens
@@ -5,6 +6,7 @@ from cft_errors_handler import ErrorsHandler
 from lexermod.cft_token import Token
 from parsemod.cft_ops import is_op
 from parsemod.cft_expr import *
+from copy import deepcopy
 from py_utils import isnotfinished
 
 
@@ -209,7 +211,7 @@ def _generate_setvalue_syntax_object(
     })
 
     if new_value is not None and new_value['type'] == '$call-name':
-        _value = namehandler.get_name_obj(new_value['returned-type'])['value'].copy()
+        _value = deepcopy(namehandler.get_name_obj(new_value['returned-type'])['value'])
 
         k = 0
         for key in _value:
