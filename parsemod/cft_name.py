@@ -6,7 +6,7 @@ from cft_namehandler import NameHandler
 
 
 # that names can not be used like a variable's, a function's name etc.
-KEYWORDS = ['if', 'else', 'elif', 'let', 'val', 'True', 'False', 'fn', 'return', 'None', 'mut', 'struct', 'mod']
+KEYWORDS = ['if', 'else', 'elif', 'let', 'val', 'True', 'False', 'fn', 'return', 'None', 'mut', 'struct', 'mod', 'use']
 
 
 def is_kw(

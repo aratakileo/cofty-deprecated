@@ -242,6 +242,29 @@ class NameHandler:
 
         self.force_set_name(**new_obj)
 
+    def use_names_from_namespace(self, composed_name: list | str):
+        current_obj = self.get_name_obj(composed_name)['value']
+
+        if '$used-names' not in self.abs_current_obj:
+            self.abs_current_obj['$used-names'] = []
+
+        for name in current_obj:
+            obj = current_obj[name]
+            self.abs_current_obj['$used-names'].append(name)
+
+            if name in self._accessible_names:
+                if self.is_overloaded(name):
+                    if self._accessible_names[name]['value'][-1] != obj:
+                        self._accessible_names[name]['value'].append(obj)
+                elif self._accessible_names[name] != obj:
+                    temp = self._accessible_names[name]
+                    self._accessible_names[name] = {
+                        'type': NAME_HANDLER_TYPES[2],
+                        'value': [temp, obj]
+                    }
+            else:
+                self._accessible_names[name] = obj
+
     def use_localspace(self, name: str):
         self.current_obj = self.get_current_body(name)
 
@@ -279,6 +302,13 @@ class NameHandler:
                     self._accessible_names[name]['value'].remove(self.abs_current_obj['value'][name])
             else:
                 del self._accessible_names[name]
+
+        if self.has_localname('$used-names'):
+            for name in self.get_name_obj('$used-names'):
+                if self.is_overloaded(name):
+                    self._accessible_names[name]['value'].remove(self.abs_current_obj['value'][name])
+                else:
+                    del self._accessible_names[name]
 
         name = self.abs_current_obj['name']
         if not name.startswith('$'):

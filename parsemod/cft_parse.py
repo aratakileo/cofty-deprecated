@@ -1,7 +1,7 @@
 from parsemod.cft_others import extract_tokens, extract_tokens_with_code_body, _is_code_body, remove_newline_by_borders
 from cft_namehandler import NameHandler, get_value_returned_type, get_abs_composed_name
+from parsemod.cft_name import is_kw, is_base_name, compose_name, is_name
 from parsemod.cft_syntaxtree_values import None_value, None_type
-from parsemod.cft_name import is_kw, is_base_name, compose_name
 from lexermod.cft_token import Token, TokenTypes, DummyToken
 from parsemod.cft_struct import _is_struct_init
 from cft_errors_handler import ErrorsHandler
@@ -9,6 +9,36 @@ from parsemod.cft_fn import _is_fn_init
 from parsemod.cft_setvalue import *
 from parsemod.cft_ops import is_op
 from parsemod.cft_expr import *
+
+
+def _is_use_kw(
+        tokens: list[Token] | Token,
+        errors_handler: ErrorsHandler,
+        path: str,
+        namehandler: NameHandler,
+        i: int = 0,
+):
+    """"use" <name>"""
+    tokens = extract_tokens(tokens, i)
+
+    if tokens is None:
+        return False
+
+    if not is_kw(tokens[0], 'use'):
+        return False
+
+    if len(tokens) == 1:
+        errors_handler.final_push_segment(path, 'SyntaxError: invalid syntax', tokens[0], fill=True)
+        return False
+
+    if not is_name(tokens, errors_handler, path, namehandler, 1):
+        return False
+
+    if not is_op(tokens[-2], '::'):
+        errors_handler.final_push_segment(path, 'SyntaxError: invalid syntax', tokens[-2], fill=True)
+        return False
+
+    return True
 
 
 def _is_if_or_elif(
@@ -457,6 +487,12 @@ def generate_code_body(
             })
 
             i += 3 + off
+        elif _is_use_kw(tokens, errors_handler, path, namehandler, i):
+            extracted_tokens = extract_tokens(tokens, i)
+
+            namehandler.use_names_from_namespace(compose_name(extracted_tokens[1:]))
+
+            i += len(extracted_tokens)
         elif _is_value_expression(tokens, errors_handler, path, namehandler, i):
             generated = _generate_expression_syntax_object(
                 tokens,
