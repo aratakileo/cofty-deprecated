@@ -1,4 +1,3 @@
-import cft_namehandler
 from cft_namehandler import NameHandler, get_value_returned_type, get_abs_composed_name
 from parsemod.cft_name import is_name, is_kw, compose_name
 from parsemod.cft_others import extract_tokens
@@ -7,7 +6,6 @@ from lexermod.cft_token import Token
 from parsemod.cft_ops import is_op
 from parsemod.cft_expr import *
 from copy import deepcopy
-from py_utils import isnotfinished
 
 
 def _is_setvalue_expression(
