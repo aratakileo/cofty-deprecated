@@ -1,5 +1,5 @@
 import cft_namehandler
-from cft_namehandler import NameHandler, get_value_returned_type
+from cft_namehandler import NameHandler, get_value_returned_type, get_abs_composed_name
 from parsemod.cft_name import is_name, is_kw, compose_name
 from parsemod.cft_others import extract_tokens
 from cft_errors_handler import ErrorsHandler
@@ -172,7 +172,7 @@ def _generate_setvalue_syntax_object(
     if sep_op_index != -1:
         # : <value-type>
 
-        value_type = compose_name(_tokens[sep_op_index + 1: assign_op_index if assign_op_index != -1 else None])
+        value_type = get_abs_composed_name(namehandler.get_name_obj(compose_name(_tokens[sep_op_index + 1: assign_op_index if assign_op_index != -1 else None]), from_obj=namehandler._accessible_names))
 
     if assign_op_index != -1:
         # = <new-value>

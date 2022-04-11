@@ -1,5 +1,6 @@
 from cft_namehandler import NameHandler, get_value_returned_type, get_local_name, get_abs_composed_name
 from parsemod.cft_name import is_name, is_kw, compose_name
+from parsemod.cft_syntaxtree_values import str_type
 from parsemod.cft_others import extract_tokens
 from cft_errors_handler import ErrorsHandler
 from compile.cft_compile import get_num_type
@@ -71,27 +72,6 @@ def _is_name_call_expression(
     if parenthesis_index == -1 or not is_name(tokens[:parenthesis_index], errors_handler, path, namehandler) or (
             without_tail and len(tokens) > (parenthesis_index + 1)
     ):
-        return False
-
-    return True
-
-
-def _is_name_call_expression_old(
-        tokens: list[Token] | Token,
-        errors_handler: ErrorsHandler,
-        path: str,
-        namehandler: NameHandler,
-        i: int = 0,
-        without_tail=False  # if True tokens after call name expression are not taken into account
-):
-    tokens = tokens[i:]
-
-    if len(tokens) < 2 or (without_tail and len(tokens) != 2) or not is_name(
-            tokens[0],
-            errors_handler,
-            path,
-            namehandler
-    ) or tokens[1].type != TokenTypes.PARENTHESIS:
         return False
 
     return True
@@ -310,21 +290,21 @@ def _generate_expression_syntax_object(
 
             res.update({
                 # `c` is prefix before quotes that's means is char, not string
-                'type': 'str' if 'c' not in token.value[:_index].lower() else 'char',
+                'type': str_type if 'c' not in token.value[:_index].lower() else ['$', 'char'],
                 'value': token.value[_index + 1:-1]
             })
         elif token.type == TokenTypes.NUMBER:
             # includes any number format like integer or decimal
 
             res.update({
-                'type': get_num_type(token.value),
+                'type': ['$', get_num_type(token.value)],
                 'value': token.value
             })
         elif token.type == TokenTypes.NAME:
             res['value'] = token.value
 
             if token.value in ('True', 'False'):
-                res['type'] = 'bool'
+                res['type'] = ['$', 'bool']
             elif not namehandler.has_globalname(token.value):
                 errors_handler.final_push_segment(
                     path,

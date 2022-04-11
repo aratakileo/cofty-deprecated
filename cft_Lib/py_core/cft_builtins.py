@@ -1,12 +1,15 @@
+from parsemod.cft_syntaxtree_values import None_type, str_type
+
+
 _cft_print_fn = {
     'type': 'fn',
     'name': 'print',
     'compile-name': '_cft_print',
     'args': {
         's': {
-            'type': 'str',
+            'type': str_type,
             'value': {
-                'type': 'str',
+                'type': str_type,
                 'value': '',
                 'returned-type': '$self'
             },
@@ -15,7 +18,7 @@ _cft_print_fn = {
         }
     },
     'value': {},
-    'returned-type': 'None',
+    'returned-type': None_type,
     'positional-args': 0,
     'max-args': 2
 }
