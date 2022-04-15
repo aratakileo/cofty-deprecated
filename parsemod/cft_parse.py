@@ -1,5 +1,5 @@
 from parsemod.cft_others import extract_tokens, extract_tokens_with_code_body, _is_code_body, remove_newline_by_borders
-from cft_namehandler import NameHandler, get_value_returned_type, get_abs_composed_name
+from cft_namehandler import NameHandler, get_value_returned_type, get_abs_composed_name, NAME_HANDLER_TYPES
 from parsemod.cft_name import is_kw, is_base_name, compose_name, is_name
 from parsemod.cft_syntaxtree_values import None_value, None_type
 from lexermod.cft_token import Token, TokenTypes, DummyToken
@@ -19,7 +19,7 @@ def _is_use_kw(
         i: int = 0,
 ):
     """"use" <name>"""
-    tokens = extract_tokens(tokens, i)
+    _tokens = tokens = extract_tokens(tokens, i)
 
     if tokens is None:
         return False
@@ -31,11 +31,14 @@ def _is_use_kw(
         errors_handler.final_push_segment(path, 'SyntaxError: invalid syntax', tokens[0], fill=True)
         return False
 
-    if not is_name(tokens, errors_handler, path, namehandler, 1):
+    if is_op(tokens[-1], '*') and is_op(tokens[-2], '::') or is_op(_tokens[-2], 'as') and is_base_name(_tokens[-1]):
+        _tokens = tokens[:-2]
+
+    if not is_name(_tokens, errors_handler, path, namehandler, 1):
         return False
 
-    if not is_op(tokens[-2], '::'):
-        errors_handler.final_push_segment(path, 'SyntaxError: invalid syntax', tokens[-2], fill=True)
+    if not is_op(_tokens[-2], '::'):
+        errors_handler.final_push_segment(path, 'SyntaxError: invalid syntax', _tokens[-2], fill=True)
         return False
 
     return True
@@ -490,7 +493,54 @@ def generate_code_body(
         elif _is_use_kw(tokens, errors_handler, path, namehandler, i):
             extracted_tokens = extract_tokens(tokens, i)
 
-            namehandler.use_names_from_namespace(compose_name(extracted_tokens[1:]))
+            if '$used-names' not in namehandler.abs_current_obj:
+                namehandler.abs_current_obj['$used-names'] = []
+
+            if is_op(extracted_tokens[-1], '*'):
+                composed_name = compose_name(extracted_tokens[1:-2])
+                current_obj = namehandler.get_name_obj(composed_name)['value']
+
+                for name in current_obj:
+                    obj = current_obj[name]
+                    namehandler.abs_current_obj['$used-names'].append(name)
+
+                    if name in namehandler._accessible_names:
+                        errors_handler.final_push_segment(
+                            path,
+                            f'NameError: name `{name}` is already defined',
+                            extracted_tokens[-1],
+                            fill=True
+                        )
+                    else:
+                        namehandler._accessible_names[name] = obj
+
+                if errors_handler.has_errors():
+                    return {}
+            else:
+                name_token = None
+                _extracted_tokens = extracted_tokens
+
+                if is_op(extracted_tokens[-2], 'as'):
+                    name_token = extracted_tokens[-1]
+                    _extracted_tokens = extracted_tokens[:-2]
+
+                current_obj = namehandler.get_name_obj(compose_name(_extracted_tokens[1:]))
+
+                if name_token is None:
+                    name_token = _extracted_tokens[-1]
+
+                name = name_token.value
+
+                if name in namehandler._accessible_names:
+                    errors_handler.final_push_segment(
+                        path,
+                        f'NameError: name `{name}` is already defined',
+                        name_token,
+                        fill=True
+                    )
+                    return {}
+                else:
+                    namehandler._accessible_names[name] = current_obj
 
             i += len(extracted_tokens)
         elif _is_value_expression(tokens, errors_handler, path, namehandler, i):

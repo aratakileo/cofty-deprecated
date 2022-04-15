@@ -66,7 +66,7 @@ def _is_setvalue_expression(
 
         nearest_index = sep_op_index if sep_op_index != -1 else assign_op_index
 
-        if not is_name(tokens[:nearest_index], errors_handler, path, namehandler):
+        if not is_name(tokens[:nearest_index], errors_handler, path, namehandler, check_define=not init_type):
             return False
 
         # <value-name>: <value-type>
@@ -92,12 +92,13 @@ def _is_setvalue_expression(
         # <value-name> (: <value-type)? = <new-value>
         if assign_op_index != -1:
             if not _is_value_expression(tokens, errors_handler, path, namehandler, assign_op_index + 1):
-                errors_handler.final_push_segment(
-                    path,
-                    'SyntaxError: invalid syntax',
-                    tokens[assign_op_index + 1],
-                    fill=True
-                )
+                if not errors_handler.has_errors():
+                    errors_handler.final_push_segment(
+                        path,
+                        'SyntaxError: invalid syntax',
+                        tokens[assign_op_index + 1],
+                        fill=True
+                    )
                 return False
         elif init_type == 'val':
             errors_handler.final_push_segment(path, 'ValueError: constant without value', tokens[-1], fill=True)

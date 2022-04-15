@@ -28,7 +28,8 @@ def is_name(
         errors_handler: ErrorsHandler,
         path: str,
         namehandler: NameHandler,
-        k: int = 0
+        k: int = 0,
+        check_define=True
 ):
     tokens = extract_tokens(tokens, k)
 
@@ -39,7 +40,8 @@ def is_name(
 
     if len(tokens) > 1:
         if len(tokens) % 2 == 0:
-            errors_handler.final_push_segment(path, 'SyntaxError: invalid syntax', tokens[-1], fill=True)
+            if not errors_handler.has_errors():
+                errors_handler.final_push_segment(path, 'SyntaxError: invalid syntax', tokens[-1], fill=True)
             return False
 
         next_is_namespace_name = True
@@ -118,7 +120,22 @@ def is_name(
 
             namehandler.use_localspace(name)
 
-    return is_base_name(tokens[0])
+    if not is_base_name(tokens[0]):
+        return False
+
+    name_token = tokens[0]
+    name = name_token.value
+
+    if not namehandler.has_globalname(name) and check_define:
+        errors_handler.final_push_segment(
+            path,
+            f'NameError: name `{name}` is not defined',
+            name_token,
+            fill=True
+        )
+        return False
+
+    return True
 
 
 def compose_name(name_tokens: list[Token] | Token):
