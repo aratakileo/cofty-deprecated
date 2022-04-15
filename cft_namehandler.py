@@ -242,6 +242,7 @@ class NameHandler:
 
         self.force_set_name(**new_obj)
 
+    # TEMP METHOD (remove in release)
     def use_names_from_namespace(self, composed_name: list | str):
         current_obj = self.get_name_obj(composed_name)['value']
 
