@@ -21,7 +21,7 @@ def _is_type_expression(
     if tokens is None:
         return False
 
-    if is_name(tokens, errors_handler, path, namehandler):
+    if is_name(tokens, errors_handler, path, namehandler, debug_info=_is_type_expression.__name__):
         composed_name = compose_name(tokens)
         if namehandler.has_globalname(composed_name):
             if namehandler.isinstance(composed_name, '$struct'):
@@ -69,7 +69,9 @@ def _is_name_call_expression(
             parenthesis_index = k
             break
 
-    if parenthesis_index == -1 or not is_name(tokens[:parenthesis_index], errors_handler, path, namehandler) or (
+    if parenthesis_index == -1 or not is_name(
+            tokens[:parenthesis_index], errors_handler, path, namehandler, debug_info=_is_name_call_expression.__name__
+    ) or (
             without_tail and len(tokens) > (parenthesis_index + 1)
     ):
         return False
@@ -92,7 +94,7 @@ def _is_value_expression(
 
     if len(tokens) == 1:
         if tokens[0].type in (TokenTypes.NUMBER, TokenTypes.STRING) or is_name(
-                tokens[0], errors_handler, path, namehandler
+                tokens[0], errors_handler, path, namehandler, debug_info=_is_value_expression.__name__
         ) or is_kw(tokens[0], ('True', 'False')):
             return True
 
@@ -108,6 +110,25 @@ def _is_value_expression(
         # LOPS check
 
         return True
+    else:
+        iop = -1
+
+        for k in range(len(tokens)):
+            if ops.is_op(tokens[k], source=ops.MIDDLE_OPS):
+                iop = k
+                break
+
+        if iop != -1:
+            if (_is_name_call_expression(
+                    tokens[:iop], errors_handler, path, namehandler, without_tail=True
+            ) or _is_value_expression(
+                tokens[:iop], errors_handler, path, namehandler
+            )) and _is_value_expression(tokens, errors_handler, path, namehandler, iop + 1):
+                return True
+        elif _is_name_call_expression(tokens, errors_handler, path, namehandler, without_tail=True):
+            # calling name expression check
+
+            return True
     # elif len(tokens) >= 3:
     #     # MIDDLE_OPS check
     #
@@ -126,10 +147,6 @@ def _is_value_expression(
     #             2 + off
     #     ):
     #         return True
-    elif _is_name_call_expression(tokens, errors_handler, path, namehandler, without_tail=True):
-        # calling name expression check
-
-        return True
 
     return False
 

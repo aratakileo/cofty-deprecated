@@ -34,7 +34,7 @@ def _is_use_kw(
     if is_op(tokens[-1], '*') and is_op(tokens[-2], '::') or is_op(_tokens[-2], 'as') and is_base_name(_tokens[-1]):
         _tokens = tokens[:-2]
 
-    if not is_name(_tokens, errors_handler, path, namehandler, 1):
+    if not is_name(_tokens, errors_handler, path, namehandler, 1, debug_info=_is_use_kw.__name__):
         return False
 
     if not is_op(_tokens[-2], '::'):

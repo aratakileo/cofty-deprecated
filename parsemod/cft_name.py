@@ -4,7 +4,6 @@ from cft_errors_handler import ErrorsHandler
 from parsemod.cft_ops import ALL_OPS, is_op
 from cft_namehandler import NameHandler
 
-
 # that names can not be used like a variable's, a function's name etc.
 KEYWORDS = ['if', 'else', 'elif', 'let', 'val', 'True', 'False', 'fn', 'return', 'None', 'mut', 'struct', 'mod', 'use']
 
@@ -28,10 +27,11 @@ def is_name(
         errors_handler: ErrorsHandler,
         path: str,
         namehandler: NameHandler,
-        k: int = 0,
-        check_define=True
+        i: int = 0,
+        check_define=True,
+        debug_info='None'
 ):
-    tokens = extract_tokens(tokens, k)
+    tokens = extract_tokens(tokens, i)
 
     if tokens is None:
         return False
@@ -40,8 +40,8 @@ def is_name(
 
     if len(tokens) > 1:
         if len(tokens) % 2 == 0:
-            if not errors_handler.has_errors():
-                errors_handler.final_push_segment(path, 'SyntaxError: invalid syntax', tokens[-1], fill=True)
+            # if not errors_handler.has_errors():
+            #     errors_handler.final_push_segment(path, 'SyntaxError: invalid syntax', tokens[-1], fill=True)
             return False
 
         next_is_namespace_name = True
@@ -89,7 +89,7 @@ def is_name(
                 errors_handler.final_push_segment(path, 'SyntaxError: invalid syntax', op_token, fill=True)
                 return False
 
-            if namehandler.get_current_body(name)['type'] not in ('$mod', ) and next_is_namespace_name:
+            if namehandler.get_current_body(name)['type'] not in ('$mod',) and next_is_namespace_name:
                 errors_handler.final_push_segment(
                     path,
                     f'AccessError: `{name}` is not a module',

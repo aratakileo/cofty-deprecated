@@ -96,15 +96,26 @@ def generate_op_expression(
 
     tokens = tokens[i:]
 
+    iop = None
+
+    for k in range(len(tokens)):
+        if is_op(tokens[k]):
+            iop = k
+            break
+
     if fn_is_name_call_expression(tokens, errors_handler, path, namehandler):
-        off = 1
+        # LEFT OP
+
+        # off = 1
 
         last_lvalue.update(fn_generate_name_call_expression(tokens, errors_handler, path, namehandler))
     else:
-        off = 0
+        # MIDDLE OP or LEFT OP + MIDDLE OP
+
+        # off = 0
 
         last_lvalue.update(
-            fn_generate_expression_syntax_object(tokens[0], errors_handler, path, namehandler, effect_checker=True)
+            fn_generate_expression_syntax_object(tokens[:iop], errors_handler, path, namehandler, effect_checker=True)
         )
 
     if errors_handler.has_errors():
@@ -118,7 +129,7 @@ def generate_op_expression(
 
     del last_lvalue['$has-effect'], last_lvalue['$constant-expr']  # cleaning the temp values
 
-    if 1 <= len(tokens) <= 2:
+    if iop is None:
         # LOPS generation
         res.update(invalid_lvalue)
     else:
@@ -129,7 +140,7 @@ def generate_op_expression(
             errors_handler,
             path,
             namehandler,
-            2 + off,
+            iop + 1,
             effect_checker=True
         )
 
@@ -145,13 +156,13 @@ def generate_op_expression(
 
         new_value = {
             'type': 'op',
-            'op': tokens[1 + off].value,
+            'op': tokens[iop].value,
             'lvalue': invalid_lvalue,
             'rvalue': invalid_rvalue
         }
 
         if invalid_rvalue['type'] == 'op' and 'value' not in invalid_rvalue \
-                and MIDDLE_OPS_PRIORITY[invalid_rvalue['op']] < MIDDLE_OPS_PRIORITY[tokens[1 + off].value]:
+                and MIDDLE_OPS_PRIORITY[invalid_rvalue['op']] < MIDDLE_OPS_PRIORITY[tokens[iop].value]:
             # source expr:
             # 1 + 2 * 3
 
@@ -173,7 +184,7 @@ def generate_op_expression(
                 'op': invalid_rvalue['op'],
                 'lvalue': {
                     'type': 'op',
-                    'op': tokens[1 + off].value,
+                    'op': tokens[iop].value,
                     'lvalue': invalid_lvalue,
                     'rvalue': invalid_rvalue['lvalue']
                 },

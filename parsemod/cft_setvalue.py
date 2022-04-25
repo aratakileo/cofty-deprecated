@@ -66,7 +66,14 @@ def _is_setvalue_expression(
 
         nearest_index = sep_op_index if sep_op_index != -1 else assign_op_index
 
-        if not is_name(tokens[:nearest_index], errors_handler, path, namehandler, check_define=not init_type):
+        if not is_name(
+                tokens[:nearest_index],
+                errors_handler,
+                path,
+                namehandler,
+                check_define=not init_type,
+                debug_info=_is_setvalue_expression.__name__
+        ):
             return False
 
         # <value-name>: <value-type>
