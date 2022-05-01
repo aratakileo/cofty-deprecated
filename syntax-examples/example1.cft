@@ -1,1 +1,24 @@
+mod Entity {
+    mod People {
+        struct People {
+            name: str,
+            age: i8
+        }
 
+        struct PeopleContainer
+        {
+            people: People,
+            clothes: (vec<Clothes> | Clothes)?
+        }
+   }
+}
+
+let Agata = Entity::People::People("Agata", 16)
+
+{
+    use Entity::*
+
+    let AgataContainer = People::PeopleContainer(Agata, None)
+}
+
+print('Hi ${AgataContainer.people.name}!')
