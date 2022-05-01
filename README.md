@@ -73,66 +73,33 @@ At first, you need
 > __*The compilation of the code is not ready yet, and the language itself is not finished yet and does not have support for the minimum allowable syntax. Using the project's capabilities at this stage is at your own risk!*__
 
 ### Code examples
+
+You can also familiarize yourself with the syntax of the language in the [sample code files](https://github.com/TeaCondemns/cofty/tree/main/syntax-examples) in this programming language.
+
 #### Hello World
 ```py
 print('Hello World!')
 ```
+
 #### Comment
 ```sql
 -- insert comment here
 ```
+
 #### Using variables
 Just a variable (immutable)
 ```sql
 let a = 123
 a = 1234  -- error
 ```
+
 Mutable variable
 ```py
 let mut hello_world = 'Hello World'
 hello_world = 'Hello World!'
 ```
+
 Constant variable
 ```kt
 val ENDL = c'\n'
 ```
-
-<!--
-# Different languages syntax comparison
-### Program starting
-- Cofty
-```sql
--- your code here
-```
-- Cofty (alternative)
-```applescript
-fn main() {
-    -- your code here
-}
-```
-
-### Output `Hello World!`
-- Future Cofty
-```python
-print('Hello World!')
-```
-- Current Cofty
-```diff
-! That method is not exist now
-```
-- Rust
-```Rust
-fn main() {
-    println!("Hello World!");
-}
-```
-- C++
-```cpp
-#include <iostream>
-
-int main() {
-    std::cout << "Hello World!" << std::endl;
-    return 0;
-}
-```
--->
