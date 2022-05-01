@@ -1,10 +1,14 @@
 # The Cofty Programming Language
 This is the main source code repository for Cofty. It contains the compiler, standard library, and documentation.
 
+### The main directions in which we are working in the process of developing this programming language
+- More abstractions and syntax sugar (advanced parser)
+- Performance and flexibility
 <!--A smart compiler makes it possible to write less code with the same efficiency and safy of its execution as if you were writing it by [Rust](https://www.rust-lang.org).-->
 
 [`Python >= 3.10`]: https://www.python.org/downloads/
 
+<!--
 ### Current project version
 - Has
   - tokenizer
@@ -59,6 +63,7 @@ This is the main source code repository for Cofty. It contains the compiler, sta
       - [x] prototype initialization
       - [x] self initialization
     - [ ] classes
+-->
 
 ### Installing
 At first, you need
