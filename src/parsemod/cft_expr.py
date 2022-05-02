@@ -7,6 +7,7 @@ from compile.cft_compile import get_num_type
 from py_utils import isnotfinished
 from lexermod.cft_token import *
 import parsemod.cft_ops as ops
+from copy import deepcopy
 
 
 def _is_type_expression(
@@ -129,24 +130,6 @@ def _is_value_expression(
             # calling name expression check
 
             return True
-    # elif len(tokens) >= 3:
-    #     # MIDDLE_OPS check
-    #
-    #     if _is_name_call_expression(tokens[:2], errors_handler, path, namehandler, without_tail=True):
-    #         off = 1
-    #     elif _is_value_expression(tokens[0], errors_handler, path, namehandler):
-    #         off = 0
-    #     else:
-    #         return False
-    #
-    #     if ops.is_op(tokens[1 + off], source=ops.MIDDLE_OPS) and _is_value_expression(
-    #             tokens,
-    #             errors_handler,
-    #             path,
-    #             namehandler,
-    #             2 + off
-    #     ):
-    #         return True
 
     return False
 
@@ -188,7 +171,7 @@ def _generate_name_call_expression(
         else:
             args_tokens = [tokens[parenthesis_index].value]
 
-    namehandler_obj = namehandler.get_current_body(name).copy()
+    namehandler_obj = deepcopy(namehandler.get_current_body(name))
 
     if namehandler_obj['type'] == '$struct':
         args_dict = namehandler_obj['value']
@@ -266,14 +249,32 @@ def _generate_name_call_expression(
 
         args.append(arg)
 
-    return {
-        'type': '$call-name',
-        'called-name': name,
-        'args': args,
-        'returned-type': returned_type,
-        '$has-effect': True,  # temp value
-        '$constant-expr': False  # temp value
-    }
+    if namehandler_obj['type'] == '$struct':
+        fields = namehandler_obj['value']
+
+        k = 0
+        for key in fields:
+            fields[key]['value'] = args[k]
+            del fields[key]['*parent']
+            k += 1
+
+        return {
+            'type': '$init-cls',
+            'called-name': name,
+            'fields': fields,
+            'returned-type': returned_type,
+            '$has-effect': True,
+            '$constant-expr': False
+        }
+    else:
+        return {
+            'type': '$call-name',
+            'called-name': name,
+            'args': args,
+            'returned-type': returned_type,
+            '$has-effect': True,  # temp value
+            '$constant-expr': False  # temp value
+        }
 
 
 def _generate_expression_syntax_object(
@@ -377,7 +378,9 @@ def _generate_expression_syntax_object(
                     if res['type'] != 'tuple':
                         res['value'] = [res['value']]
     elif _is_name_call_expression(tokens, errors_handler, path, namehandler, without_tail=True):
-        res.update(_generate_name_call_expression(tokens, errors_handler, path, namehandler))
+        res.update(
+            _generate_name_call_expression(tokens, errors_handler, path, namehandler)
+        )
     else:
         res.update(ops.generate_op_expression(
             tokens,

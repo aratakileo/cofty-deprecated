@@ -108,7 +108,9 @@ def generate_op_expression(
 
         # off = 1
 
-        last_lvalue.update(fn_generate_name_call_expression(tokens, errors_handler, path, namehandler))
+        last_lvalue.update(
+            fn_generate_name_call_expression(tokens, errors_handler, path, namehandler)
+        )
     else:
         # MIDDLE OP or LEFT OP + MIDDLE OP
 

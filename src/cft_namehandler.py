@@ -78,9 +78,15 @@ class NameHandler:
             return self.get_name_obj(composed_name[1:], self._core_namespace)
 
         for name in composed_name:
-            if 'value' not in from_obj or from_obj['value'] is None or name not in from_obj['value']:
+            if ('value' not in from_obj or from_obj['value'] is None or name not in from_obj['value']) and 'field' not in from_obj['value']:
+                print(composed_name, 'lose')
+
+                if name == 'name':
+                    print(from_obj['value'].keys())
+
                 return None
 
+            print(composed_name, 'truth')
             from_obj = from_obj['value'][name]
 
         return from_obj

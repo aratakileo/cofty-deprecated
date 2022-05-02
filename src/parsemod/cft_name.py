@@ -109,7 +109,7 @@ def is_name(
                 )
                 return False
 
-            if 'type' in temp['value']:
+            if 'type' in temp['value'] and temp['value']['type'] not in '$init-cls':
                 errors_handler.final_push_segment(
                     path,
                     f'AccessError: cannot get access to names of `{name}`',

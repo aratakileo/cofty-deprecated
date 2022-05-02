@@ -216,18 +216,18 @@ def _generate_setvalue_syntax_object(
         'value': new_value
     })
 
-    if new_value is not None and new_value['type'] == '$call-name':
-        _value = deepcopy(namehandler.get_name_obj(new_value['returned-type'])['value'])
-
-        k = 0
-        for key in _value:
-            _value[key].update({
-                'value': new_value['args'][k],
-                '*parent': namehandler_res
-            })
-            k += 1
-
-        namehandler_res['value'] = _value
+    # if new_value is not None and new_value['type'] == '$call-name':
+    #     _value = deepcopy(namehandler.get_name_obj(new_value['returned-type'])['value'])
+    #
+    #     k = 0
+    #     for key in _value:
+    #         _value[key].update({
+    #             'value': new_value['args'][k],
+    #             '*parent': namehandler_res
+    #         })
+    #         k += 1
+    #
+    #     namehandler_res['value'] = _value
 
     if namehandler.has_localname(composed_name):
         name_obj = _name_obj = namehandler.get_name_obj(composed_name)
