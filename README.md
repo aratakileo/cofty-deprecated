@@ -75,7 +75,7 @@ At first, you need
 
 ### Code examples
 
-You can also familiarize yourself with the syntax of the language in the [sample code files](https://github.com/TeaCondemns/cofty/tree/main/syntax-examples) in this programming language.
+You can also familiarize yourself with the syntax of the language in the [sample code files](https://github.com/aratakileo/cofty/tree/main/syntax-examples) in this programming language.
 
 #### Hello World
 ```py
